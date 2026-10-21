@@ -1,0 +1,14 @@
+{
+  "name": "H · Entrenamiento para perezosos",
+  "short_name": "H",
+  "description": "Entrenamiento guiado por evidencia",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b0b0c",
+  "theme_color": "#0b0b0c",
+  "icons": [
+    { "src": "brand/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "brand/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

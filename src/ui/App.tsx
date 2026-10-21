@@ -1,4 +1,4 @@
-import { APP_NAME, TAGLINE } from '../brand'
+import { APP_NAME, LOGO_URL, TAGLINE } from '../brand'
 import { HashRouter, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { ActiveProfileProvider, useActiveProfile } from './activeProfile'
 import { LockScreen } from './components/LockScreen'
@@ -89,7 +89,7 @@ function Shell() {
     <div className="app">
       <nav className="sidebar" aria-label="Principal">
         <div className="brand">
-          <img src="/brand/h-logo.png" alt={APP_NAME} />
+          <img src={LOGO_URL} alt={APP_NAME} />
         </div>
         {NAV.map((n) => (
           <NavLink key={n.to} to={n.to} end={n.to === '/'} className="nav-link">
@@ -101,7 +101,7 @@ function Shell() {
       <div className="main">
         <header className="topbar">
           <div className="brand">
-            <img src="/brand/h-logo.png" alt={APP_NAME} />
+            <img src={LOGO_URL} alt={APP_NAME} />
           </div>
           <span className="tagline">{TAGLINE}</span>
           <div className="row" style={{ flexWrap: 'nowrap' }}>

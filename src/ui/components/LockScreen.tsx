@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { LOGO_URL } from '../../brand'
 import type { Profile } from '../../domain/types'
 import { useActiveProfile } from '../activeProfile'
 
@@ -16,7 +17,7 @@ export function LockScreen({ profile }: { profile: Profile }) {
 
   return (
     <form className="card lock-screen stack-sm" onSubmit={submit}>
-      <img src="/brand/h-logo.png" alt="" className="lock-logo" />
+      <img src={LOGO_URL} alt="" className="lock-logo" />
       <h1 style={{ margin: 0 }}>{profile.name}</h1>
       <p className="muted" style={{ margin: 0 }}>
         Introduce tu clave para continuar.
