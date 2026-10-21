@@ -1,4 +1,4 @@
-# H · Entrenamiento guiado por evidencia
+# H · Entrenamiento para perezosos
 
 Nombre definitivo pendiente (en español; se cambia en `src/brand.ts`). Entrenamiento guiado por evidencia: evaluar → prescribir → guiar → registrar → comparar → ajustar.
 
