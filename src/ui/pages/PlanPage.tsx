@@ -1,15 +1,16 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { activePlan, db, savePlan } from '../../db/db'
+import { activePlan, db } from '../../db/db'
 import { getExercise, repRangeFor, restFor, substitutesFor } from '../../domain/exercises'
 import { MUSCLE_LABELS } from '../../domain/labels'
-import { computeVolume, generatePlan, weeklyTargets } from '../../domain/planGenerator'
+import { computeVolume, weeklyTargets } from '../../domain/planGenerator'
 import { evaluateSafety } from '../../domain/safety'
 import type { Plan, Profile } from '../../domain/types'
 import { MUSCLES } from '../../domain/types'
 import { useActiveProfile } from '../activeProfile'
 import { Explanations } from '../components/Explanations'
+import { PlanChangesAlert, regeneratePlan } from '../components/PlanChangesAlert'
 
 const fmtRest = (s: number) => (s >= 120 ? `${s / 60} min` : `${s} s`)
 
@@ -218,7 +219,7 @@ export function PlanPage() {
   async function generate() {
     if (!active) return
     if (plan && (logCount ?? 0) > 0 && !confirm('Se creará un mesociclo nuevo. El historial de entrenamientos se conserva. ¿Continuar?')) return
-    await savePlan(generatePlan(active, { weeks }))
+    await regeneratePlan(active, weeks)
   }
 
   return (
@@ -261,6 +262,8 @@ export function PlanPage() {
           </ul>
         </div>
       )}
+
+      {plan && <PlanChangesAlert plan={plan} profile={active} />}
 
       {plan ? (
         <PlanView plan={plan} profile={active} />

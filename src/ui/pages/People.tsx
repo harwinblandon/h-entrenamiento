@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { deleteProfile, exportData, importData } from '../../db/db'
 import { EXPERIENCE_LABELS, GOAL_LABELS } from '../../domain/labels'
 import { evaluateSafety } from '../../domain/safety'
@@ -8,7 +8,8 @@ import { useActiveProfile } from '../activeProfile'
 import { applyFont, FONT_OPTIONS, storedFont } from '../appearance'
 
 export function People() {
-  const { profiles, active, setActiveId } = useActiveProfile()
+  const { profiles, active, setActiveId, isLocked } = useActiveProfile()
+  const navigate = useNavigate()
   const fileRef = useRef<HTMLInputElement>(null)
   const [message, setMessage] = useState<string>()
   const [font, setFont] = useState(storedFont)
@@ -54,6 +55,30 @@ export function People() {
         {profiles?.map((p) => {
           const safety = evaluateSafety(p.safety)
           const isActive = active?.id === p.id
+          if (isLocked(p)) {
+            return (
+              <div className="card stack-sm" key={p.id} style={isActive ? { borderColor: 'var(--accent)' } : undefined}>
+                <div className="spread">
+                  <h2 style={{ margin: 0 }}>{p.name}</h2>
+                  <span className="badge">Con clave</span>
+                </div>
+                <p className="muted" style={{ margin: 0, fontSize: '0.88rem' }}>
+                  Datos protegidos. Desbloquea para verlos o editarlos.
+                </p>
+                <div className="row" style={{ marginTop: '0.3rem' }}>
+                  <button
+                    className="btn small"
+                    onClick={() => {
+                      setActiveId(p.id)
+                      navigate('/')
+                    }}
+                  >
+                    Desbloquear
+                  </button>
+                </div>
+              </div>
+            )
+          }
           return (
             <div className="card stack-sm" key={p.id} style={isActive ? { borderColor: 'var(--accent)' } : undefined}>
               <div className="spread">
@@ -67,6 +92,7 @@ export function People() {
               </div>
               <div className="row">
                 {p.status === 'calibration' && <span className="badge">Calibración</span>}
+                {p.pin && <span className="badge">Con clave</span>}
                 {safety.level === 'clearance_required' && <span className="badge danger">Requiere autorización</span>}
                 {safety.level === 'caution' && <span className="badge warn">Precauciones</span>}
               </div>

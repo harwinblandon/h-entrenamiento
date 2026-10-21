@@ -5,6 +5,8 @@ import { MUSCLE_LABELS } from './labels'
 import { computeNutrition } from './nutrition'
 import { distribute, generatePlan, weeklyTargets } from './planGenerator'
 import { estimate1RM, recommendLoad, suggestNextSet } from './progression'
+import { createPin, verifyPin } from './pin'
+import { planChanges, planSnapshot } from './planChanges'
 import { emptySafety, evaluateSafety } from './safety'
 import { weightStatus } from './schedule'
 import type { LoggedExercise, LoggedSet, Profile } from './types'
@@ -221,6 +223,42 @@ describe('estado del peso', () => {
   it('con 3 pesajes en 7 días usa el promedio', () => {
     const s = weightStatus([log('2026-10-19', 76), log('2026-10-20', 76.4), log('2026-10-21', 76.2)], 75.5, today)
     expect(s).toMatchObject({ weightKg: 76.2, source: 'average', confirmed: true })
+  })
+})
+
+describe('cambios en la ficha que afectan al plan', () => {
+  it('no avisa si solo cambian datos que no influyen en el plan', () => {
+    const p = profile()
+    const snap = planSnapshot(p)
+    expect(planChanges(snap, { ...p, weightKg: 80, waistCm: 90, supplements: ['Cafeína'] })).toEqual([])
+    expect(planChanges(snap, { ...p, sleepHours: 7.5 })).toEqual([])
+  })
+
+  it('describe los cambios relevantes', () => {
+    const p = profile({ priorityMuscles: ['calves', 'traps'] })
+    const snap = planSnapshot(p)
+    const changes = planChanges(snap, { ...p, daysPerWeek: 4, priorityMuscles: ['calves', 'glutes'], sleepHours: 5 })
+    expect(changes).toContain('Días por semana: 5 → 4')
+    expect(changes).toContain('Prioridades: +Glúteos, −Trapecio')
+    expect(changes).toContain('Recuperación: empeoró (sueño o estrés)')
+  })
+
+  it('sin instantánea (planes antiguos) no avisa', () => {
+    expect(planChanges(undefined, profile())).toEqual([])
+  })
+})
+
+describe('clave de acceso', () => {
+  it('verifica la clave correcta y rechaza otra', async () => {
+    const lock = await createPin('2468')
+    expect(lock.hash).not.toContain('2468')
+    expect(await verifyPin('2468', lock)).toBe(true)
+    expect(await verifyPin('1357', lock)).toBe(false)
+  })
+
+  it('exige entre 4 y 6 números', async () => {
+    await expect(createPin('12')).rejects.toThrow()
+    await expect(createPin('12a4')).rejects.toThrow()
   })
 })
 

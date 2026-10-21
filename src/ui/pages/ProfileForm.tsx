@@ -16,7 +16,8 @@ import {
 } from '../../domain/labels'
 import { emptySafety, evaluateSafety, SAFETY_QUESTIONS } from '../../domain/safety'
 import { todayISO } from '../../domain/schedule'
-import type { Equipment, Profile } from '../../domain/types'
+import { createPin, PIN_PATTERN } from '../../domain/pin'
+import type { Equipment, PinLock, Profile } from '../../domain/types'
 import { EQUIPMENT, MUSCLES } from '../../domain/types'
 import { useActiveProfile } from '../activeProfile'
 
@@ -120,6 +121,70 @@ function ChipSelect({
   )
 }
 
+function PinSection({ pin, onChange }: { pin: PinLock | undefined; onChange: (pin: PinLock | undefined) => void }) {
+  const [editing, setEditing] = useState(false)
+  const [first, setFirst] = useState('')
+  const [second, setSecond] = useState('')
+  const [error, setError] = useState<string>()
+  const digits = (v: string) => v.replace(/\D/g, '').slice(0, 6)
+
+  async function confirmPin() {
+    if (!PIN_PATTERN.test(first)) return setError('La clave debe tener entre 4 y 6 números.')
+    if (first !== second) return setError('Las claves no coinciden.')
+    onChange(await createPin(first))
+    setEditing(false)
+    setFirst('')
+    setSecond('')
+    setError(undefined)
+  }
+
+  return (
+    <fieldset className="card stack">
+      <legend>Clave de acceso</legend>
+      <p className="muted" style={{ fontSize: '0.88rem' }}>
+        Opcional. Pide una clave numérica para ver o cambiar los datos de esta persona en este dispositivo. Es un candado
+        de conveniencia: evita cambios accidentales, pero no sustituye a una contraseña de una cuenta en línea. Si se
+        olvida, no se puede recuperar.
+      </p>
+      {pin && !editing && (
+        <div className="row">
+          <span className="badge accent">Clave activa</span>
+          <button type="button" className="btn small" onClick={() => setEditing(true)}>
+            Cambiar clave
+          </button>
+          <button type="button" className="btn small danger" onClick={() => onChange(undefined)}>
+            Quitar clave
+          </button>
+        </div>
+      )}
+      {(!pin || editing) && (
+        <div className="stack-sm">
+          <div className="grid-tight">
+            <Field label="Nueva clave (4–6 números)">
+              <input type="password" inputMode="numeric" autoComplete="new-password" value={first} onChange={(e) => setFirst(digits(e.target.value))} />
+            </Field>
+            <Field label="Repite la clave">
+              <input type="password" inputMode="numeric" autoComplete="new-password" value={second} onChange={(e) => setSecond(digits(e.target.value))} />
+            </Field>
+          </div>
+          {error && <div className="alert danger">{error}</div>}
+          <div className="row">
+            <button type="button" className="btn small" onClick={confirmPin} disabled={first.length < 4}>
+              {pin ? 'Usar esta clave' : 'Activar clave'}
+            </button>
+            {editing && (
+              <button type="button" className="btn small" onClick={() => setEditing(false)}>
+                Cancelar
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+      <small>Los cambios de clave se aplican al pulsar «Guardar ficha».</small>
+    </fieldset>
+  )
+}
+
 function ExercisePicker({ selected, onChange }: { selected: string[]; onChange: (ids: string[]) => void }) {
   const toggle = (id: string) => onChange(selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id])
   return (
@@ -147,7 +212,7 @@ function ExercisePicker({ selected, onChange }: { selected: string[]; onChange: 
 export function ProfileForm() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { setActiveId } = useActiveProfile()
+  const { setActiveId, markUnlocked } = useActiveProfile()
   const existing = useLiveQuery(() => (id ? db.profiles.get(id) : undefined), [id])
   const [p, setP] = useState<Profile>(newProfile)
   const [loaded, setLoaded] = useState(!id)
@@ -171,6 +236,8 @@ export function ProfileForm() {
     if (!id && saved.weightDate === todayISO()) {
       await db.bodyLogs.add({ id: crypto.randomUUID(), profileId: saved.id, date: saved.weightDate, weightKg: saved.weightKg, waistCm: saved.waistCm })
     }
+    // Quien acaba de poner o cambiar la clave no queda bloqueado fuera.
+    if (saved.pin) markUnlocked(saved.id)
     setActiveId(saved.id)
     navigate('/plan')
   }
@@ -443,6 +510,8 @@ export function ProfileForm() {
           </label>
         )}
       </fieldset>
+
+      <PinSection pin={p.pin} onChange={(pin) => set('pin', pin)} />
 
       <div className="row">
         <button className="btn primary" type="submit" disabled={p.equipment.length === 0}>

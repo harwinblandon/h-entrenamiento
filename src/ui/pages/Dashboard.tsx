@@ -8,6 +8,7 @@ import { evaluateSafety } from '../../domain/safety'
 import { nextSession, todayISO, WEIGHINS_TO_CONFIRM, weightStatus, weightTrend } from '../../domain/schedule'
 import type { BodyLog, Plan, Profile, WorkoutLog } from '../../domain/types'
 import { useActiveProfile } from '../activeProfile'
+import { PlanChangesAlert } from '../components/PlanChangesAlert'
 
 interface Step {
   done: boolean
@@ -207,6 +208,8 @@ export function Dashboard() {
           </ul>
         </div>
       )}
+
+      {plan && <PlanChangesAlert plan={plan} profile={active} />}
 
       <FirstSteps profile={active} plan={plan} workouts={workouts} logs={bodyLogs} />
 

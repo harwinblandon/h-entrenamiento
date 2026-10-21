@@ -40,6 +40,11 @@ export interface SafetyAnswers {
   medicalClearance: boolean
 }
 
+export interface PinLock {
+  hash: string
+  salt: string
+}
+
 export interface CardioPrefs {
   modalities: string[]
   daysPerWeek: number
@@ -84,6 +89,8 @@ export interface Profile {
   lifeStageNotes: string
   safety: SafetyAnswers
   status: 'calibration' | 'active'
+  /** Clave de acceso opcional (solo el hash, nunca el número). */
+  pin?: PinLock
   createdAt: string
   updatedAt: string
 }
@@ -148,6 +155,20 @@ export interface Plan {
   explanations: Explanation[]
   warnings: string[]
   active: boolean
+  /** Datos de la ficha que influyen en el plan, tal como estaban al generarlo. */
+  profileSnapshot?: PlanSnapshot
+}
+
+export interface PlanSnapshot {
+  daysPerWeek: number
+  sessionMinutes: number
+  experience: Experience
+  previousWeeklySets?: number
+  poorRecovery: boolean
+  priorityMuscles: Muscle[]
+  equipment: Equipment[]
+  avoidExerciseIds: string[]
+  preferredExerciseIds: string[]
 }
 
 export type Technique = 'stable' | 'deteriorated'

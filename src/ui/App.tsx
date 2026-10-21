@@ -1,7 +1,8 @@
 import { APP_NAME, TAGLINE } from '../brand'
-import { HashRouter, NavLink, Route, Routes, useNavigate } from 'react-router-dom'
+import { HashRouter, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { ActiveProfileProvider, useActiveProfile } from './activeProfile'
-import { IconBook, IconDumbbell, IconFood, IconHome, IconPlan, IconUsers } from './components/icons'
+import { LockScreen } from './components/LockScreen'
+import { IconBook, IconDumbbell, IconFood, IconHome, IconLock, IconPlan, IconUsers } from './components/icons'
 import { Dashboard } from './pages/Dashboard'
 import { EvidencePage } from './pages/EvidencePage'
 import { NutritionPage } from './pages/NutritionPage'
@@ -43,6 +44,41 @@ function ProfileSwitcher() {
   )
 }
 
+/** Rutas abiertas aunque la persona activa esté bloqueada. */
+const OPEN_PATHS = ['/personas', '/personas/nueva', '/evidencia']
+
+function GuardedRoutes() {
+  const { pathname } = useLocation()
+  const { profiles, active, isLocked } = useActiveProfile()
+  const editing = pathname.match(/^\/personas\/([^/]+)$/)?.[1]
+  const target = editing && editing !== 'nueva' ? profiles?.find((p) => p.id === editing) : active
+  if (!OPEN_PATHS.includes(pathname) && target && isLocked(target)) {
+    return <LockScreen key={target.id} profile={target} />
+  }
+  return (
+    <Routes>
+      <Route path="/" element={<Dashboard />} />
+      <Route path="/personas" element={<People />} />
+      <Route path="/personas/nueva" element={<ProfileForm />} />
+      <Route path="/personas/:id" element={<ProfileForm />} />
+      <Route path="/plan" element={<PlanPage />} />
+      <Route path="/entrenar" element={<WorkoutPage />} />
+      <Route path="/nutricion" element={<NutritionPage />} />
+      <Route path="/evidencia" element={<EvidencePage />} />
+    </Routes>
+  )
+}
+
+function LockButton() {
+  const { active, isLocked, lock } = useActiveProfile()
+  if (!active?.pin || isLocked(active)) return null
+  return (
+    <button className="btn small" onClick={() => lock(active.id)} title={`Bloquear a ${active.name}`}>
+      <IconLock /> Bloquear
+    </button>
+  )
+}
+
 function Shell() {
   return (
     <div className="app">
@@ -63,19 +99,13 @@ function Shell() {
             <img src="/brand/h-logo.png" alt={APP_NAME} />
           </div>
           <span className="tagline">{TAGLINE}</span>
-          <ProfileSwitcher />
+          <div className="row" style={{ flexWrap: 'nowrap' }}>
+            <LockButton />
+            <ProfileSwitcher />
+          </div>
         </header>
         <main className="content">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/personas" element={<People />} />
-            <Route path="/personas/nueva" element={<ProfileForm />} />
-            <Route path="/personas/:id" element={<ProfileForm />} />
-            <Route path="/plan" element={<PlanPage />} />
-            <Route path="/entrenar" element={<WorkoutPage />} />
-            <Route path="/nutricion" element={<NutritionPage />} />
-            <Route path="/evidencia" element={<EvidencePage />} />
-          </Routes>
+          <GuardedRoutes />
         </main>
       </div>
       <nav className="bottom-nav" aria-label="Principal">
