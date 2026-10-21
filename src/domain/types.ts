@@ -20,6 +20,7 @@ export const MUSCLES = [
   'quads',
   'hamstrings',
   'glutes',
+  'adductors',
   'calves',
   'abs',
 ] as const
@@ -80,6 +81,8 @@ export interface Profile {
   preferredExerciseIds: string[]
   goal: Goal
   priorityMuscles: Muscle[]
+  /** Énfasis de la división: equilibrada o con más frecuencia de tren inferior. */
+  splitEmphasis?: 'balanced' | 'lower'
   /** Series semanales por músculo que la persona venía haciendo (aprox.). */
   previousWeeklySets?: number
   supplements: string[]
@@ -111,6 +114,14 @@ export interface Exercise {
   fatigue: 1 | 2 | 3
   repRange?: [number, number]
   loadNote?: string
+  /** Carga el músculo en posición estirada; la evidencia reciente sugiere más hipertrofia. */
+  lengthened?: boolean
+  /** Flexión de tronco (crunch, elevaciones de piernas): se evita en embarazo y posparto. */
+  trunkFlexion?: boolean
+  /** Máquina asistida: más kilos = más fácil; progresa reduciendo la asistencia. */
+  assisted?: boolean
+  /** Cómo progresar cuando no hay carga medible. */
+  progressionHint?: string
   cues: string[]
 }
 
@@ -157,10 +168,17 @@ export interface Plan {
   active: boolean
   /** Datos de la ficha que influyen en el plan, tal como estaban al generarlo. */
   profileSnapshot?: PlanSnapshot
+  /** «deload»: semana de descarga entre mesociclos. */
+  kind?: 'mesocycle' | 'deload'
+  /** Mesociclo ya preparado que empieza al terminar la descarga. */
+  queued?: boolean
+  /** Ajustes aplicados desde el cierre del mesociclo anterior, en texto. */
+  adjustments?: string[]
 }
 
 export interface PlanSnapshot {
   daysPerWeek: number
+  splitEmphasis?: 'balanced' | 'lower'
   sessionMinutes: number
   experience: Experience
   previousWeeklySets?: number
@@ -206,6 +224,10 @@ export interface WorkoutLog {
   entries: LoggedExercise[]
   /** Fatiga percibida al terminar, 1–5. */
   fatigue?: number
+  /** Cómo llegó a la sesión: «reduced» si se ajustó por cansancio, sueño, estrés o síntomas. */
+  readiness?: 'normal' | 'reduced'
+  /** Sesión de una semana de descarga. */
+  deload?: boolean
   notes?: string
 }
 

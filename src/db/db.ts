@@ -74,6 +74,28 @@ export async function savePlan(plan: Plan) {
   })
 }
 
+/** Guarda el cierre de un mesociclo: descarga activa con el siguiente en cola, o el siguiente directamente. */
+export async function saveNextCycle(next: Plan, deload?: Plan) {
+  await db.transaction('rw', db.plans, async () => {
+    const plans = await db.plans.where('profileId').equals(next.profileId).toArray()
+    for (const p of plans) if (p.queued) await db.plans.delete(p.id)
+  })
+  if (deload) {
+    await savePlan(deload)
+    await db.plans.put({ ...next, active: false, queued: true })
+  } else {
+    await savePlan(next)
+  }
+}
+
+/** Al terminar la descarga, activa el mesociclo que quedó preparado. */
+export async function activateQueuedPlan(profileId: string): Promise<boolean> {
+  const queued = (await db.plans.where('profileId').equals(profileId).toArray()).find((p) => p.queued)
+  if (!queued) return false
+  await savePlan({ ...queued, queued: false, active: true, createdAt: new Date().toISOString() })
+  return true
+}
+
 export async function activePlan(profileId: string): Promise<Plan | undefined> {
   const plans = await db.plans.where('profileId').equals(profileId).toArray()
   return plans.find((p) => p.active)

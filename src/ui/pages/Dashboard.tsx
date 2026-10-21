@@ -8,6 +8,7 @@ import { evaluateSafety } from '../../domain/safety'
 import { nextSession, todayISO, WEIGHINS_TO_CONFIRM, weightStatus, weightTrend } from '../../domain/schedule'
 import type { BodyLog, Plan, Profile, WorkoutLog } from '../../domain/types'
 import { useActiveProfile } from '../activeProfile'
+import { CycleComplete } from '../components/CycleComplete'
 import { PlanChangesAlert } from '../components/PlanChangesAlert'
 
 interface Step {
@@ -224,14 +225,8 @@ export function Dashboard() {
               </Link>
             </>
           )}
-          {plan && !next && (
-            <>
-              <p>Mesociclo completado.</p>
-              <Link className="btn primary" to="/plan">
-                Generar el siguiente
-              </Link>
-            </>
-          )}
+          {plan && !next && <CycleComplete plan={plan} />}
+          {plan?.kind === 'deload' && next && <span className="badge accent">Semana de descarga</span>}
           {plan && next && (
             <>
               <div className="stat">

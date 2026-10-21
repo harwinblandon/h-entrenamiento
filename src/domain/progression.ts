@@ -1,4 +1,4 @@
-import { getExercise, isLoadless } from './exercises'
+import { getExercise, isLoadless, progressionHint } from './exercises'
 import type { Exercise, LoggedExercise, LoggedSet, Muscle, WorkoutLog } from './types'
 
 /** Umbral de dolor (0–10) a partir del cual se detiene el ejercicio. */
@@ -31,6 +31,36 @@ export function rirTarget(week: number, weeks: number, ex: Exercise): [number, n
   if (week === 2) return [2, 3]
   if (week >= weeks && ex.failureSafe && ex.category === 'isolation') return [0, 1]
   return [1, 2]
+}
+
+/** RIR de una sesión: en descarga se trabaja lejos del fallo (RIR 3–5). */
+export function sessionRir(plan: { weeks: number; kind?: string }, week: number, ex: Exercise): [number, number] {
+  return plan.kind === 'deload' ? [3, 5] : rirTarget(week, plan.weeks, ex)
+}
+
+/**
+ * Ajuste del día por cansancio, poco sueño, estrés o síntomas (incluidos los del ciclo menstrual):
+ * un tercio menos de series y una repetición más en reserva.
+ */
+export function reduceForReadiness<T extends { plannedSets: number; rirTarget: [number, number] }>(e: T): T {
+  return {
+    ...e,
+    plannedSets: Math.max(1, Math.round((e.plannedSets * 2) / 3)),
+    rirTarget: [Math.min(e.rirTarget[0] + 1, 4), Math.min(e.rirTarget[1] + 1, 5)],
+  }
+}
+
+/** En descarga se mantiene o reduce moderadamente la carga (~90 % de la habitual). */
+export function deloadLoad(rec: LoadRecommendation, ex: Exercise): LoadRecommendation {
+  if (rec.weight === null || isLoadless(ex)) {
+    return { ...rec, reason: 'Descarga: usa una variante o carga cómoda y quédate a 3–5 repeticiones del fallo.' }
+  }
+  const w = roundToIncrement(rec.weight * 0.9, ex.increment)
+  return {
+    weight: w,
+    repsTarget: [rec.repsTarget[0], rec.repsTarget[0] + 2],
+    reason: `Descarga: ~90 % de tu carga habitual (${fmt(w)} kg), sin buscar repeticiones extra y lejos del fallo.`,
+  }
 }
 
 export type SetAction = 'stop' | 'reduce' | 'keep' | 'increase' | 'adjust_reps'
@@ -69,7 +99,7 @@ export function suggestNextSet(
       weight: w,
       repsTarget: repRange,
       message: loadless
-        ? `${set.technique === 'deteriorated' ? 'La técnica se deterioró' : `Quedaste por debajo de ${lo} repeticiones`}: reduce la dificultad (menos inclinación o una variante más fácil).`
+        ? `${set.technique === 'deteriorated' ? 'La técnica se deterioró' : `Quedaste por debajo de ${lo} repeticiones`}: reduce la dificultad (una variante o posición más fácil).`
         : set.technique === 'deteriorated'
           ? `La técnica se deterioró: baja a ${fmt(w)} kg y prioriza el control.`
           : `Quedaste por debajo de ${lo} repeticiones: baja a ${fmt(w)} kg para volver al rango.`,
@@ -92,7 +122,7 @@ export function suggestNextSet(
       weight: loadless ? set.weight : set.weight + step,
       repsTarget: repRange,
       message: loadless
-        ? `Te sobraron repeticiones (RIR ${set.rir}) en el tope del rango: aumenta la dificultad (más inclinación, una pierna o pausas).`
+        ? `Te sobraron repeticiones (RIR ${set.rir}) en el tope del rango: aumenta la dificultad (${progressionHint(ex)}).`
         : `Te sobraron repeticiones (RIR ${set.rir}) en el tope del rango: sube a ${fmt(set.weight + step)} kg.`,
     }
   }
@@ -144,7 +174,7 @@ export function recommendLoad(
       weight: null,
       repsTarget: repRange,
       reason: isLoadless(ex)
-        ? `Sin registros previos: elige una inclinación o variante con la que hagas ${hi} repeticiones dejando ~3 en reserva.`
+        ? `Sin registros previos: elige una variante o dificultad con la que hagas ${hi} repeticiones dejando ~3 en reserva.`
         : `Sin registros previos: elige una carga con la que hagas ${hi} repeticiones dejando ~3 en reserva.`,
     }
   }
@@ -159,7 +189,7 @@ export function recommendLoad(
   }
   if (atLoad.some((s) => s.technique === 'deteriorated') || atLoad.some((s) => s.reps < lo)) {
     const w = roundToIncrement(load * 0.95, ex.increment)
-    const fix = isLoadless(ex) ? 'usa una variante o inclinación más fácil' : `baja a ${fmt(w)} kg`
+    const fix = isLoadless(ex) ? 'usa una variante más fácil' : `baja a ${fmt(w)} kg`
     return { weight: w, repsTarget: repRange, reason: `La última vez la técnica falló o quedaste bajo ${lo} repeticiones: ${fix} y consolida.` }
   }
 
@@ -171,7 +201,7 @@ export function recommendLoad(
     return {
       weight: load,
       repsTarget: [lo, Math.min(hi, lo + 2)],
-      reason: `Alcanzaste ${top} repeticiones en todas las series: aumenta la dificultad (más inclinación, una pierna o pausas) y vuelve a ${lo}–${Math.min(hi, lo + 2)}.`,
+      reason: `Alcanzaste ${top} repeticiones en todas las series: aumenta la dificultad (${progressionHint(ex)}) y vuelve a ${lo}–${Math.min(hi, lo + 2)}.`,
     }
   }
   if (reachedTop) {

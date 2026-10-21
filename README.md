@@ -22,6 +22,10 @@ Los datos se guardan localmente en el navegador (IndexedDB). Usa **Personas → 
 - Doble progresión y comparación por 1RM estimado ajustado por RIR.
 - Sugerencia de calorías y macros según objetivo (aumento, mantenimiento, definición).
 - Registro de peso y cintura con promedio semanal.
+- Énfasis opcional en tren inferior (pierna y glúteo 3 veces por semana) y adaptaciones para embarazo, posparto y menopausia.
+- Ajuste del día según energía, sueño, estrés o síntomas.
+- Sección Progreso: gráficas, historial y récords.
+- Cierre de mesociclo con análisis de progreso, señales de fatiga, descarga opcional y siguiente mesociclo ajustado.
 - Biblioteca de evidencia.
 
 ## Estructura

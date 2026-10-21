@@ -8,7 +8,9 @@ import {
   lastEntryFor,
   PAIN_STOP,
   recommendLoad,
-  rirTarget,
+  deloadLoad,
+  reduceForReadiness,
+  sessionRir,
   suggestNextSet,
   summarizeSession,
   warmupSets,
@@ -17,6 +19,7 @@ import {
 import { nextSession, type NextSession } from '../../domain/schedule'
 import type { LoggedExercise, LoggedSet, Plan, Profile, Technique, WorkoutLog } from '../../domain/types'
 import { useActiveProfile } from '../activeProfile'
+import { CycleComplete } from '../components/CycleComplete'
 import { RestTimer, type TimerState } from '../components/RestTimer'
 
 const fmtKg = (n: number) => `${Number(n.toFixed(2))} kg`
@@ -118,7 +121,8 @@ function ExerciseCard({
 }) {
   const entry = log.entries[index]
   const ex = getExercise(entry.exerciseId)
-  const rec = recommendLoad(lastEntryFor(entry.exerciseId, history, log.id), entry.repRange, entry.rirTarget, ex)
+  const baseRec = recommendLoad(lastEntryFor(entry.exerciseId, history, log.id), entry.repRange, entry.rirTarget, ex)
+  const rec = log.deload ? deloadLoad(baseRec, ex) : baseRec
   const firstForMuscle = !log.entries.slice(0, index).some((e) => getExercise(e.exerciseId).primary.some((m) => ex.primary.includes(m)))
   const warmups = warmupSets(rec.weight, ex, firstForMuscle)
   const lastSet = entry.sets[entry.sets.length - 1]
@@ -135,7 +139,7 @@ function ExerciseCard({
 
   function substitute(id: string) {
     const nx = getExercise(id)
-    onUpdate({ ...entry, exerciseId: id, substitutedFrom: entry.substitutedFrom ?? entry.exerciseId, repRange: repRangeFor(nx), restSec: restFor(nx) })
+    onUpdate({ ...entry, exerciseId: id, substitutedFrom: entry.substitutedFrom ?? entry.exerciseId, repRange: repRangeFor(nx), restSec: restFor(nx, profile.experience) })
   }
 
   return (
@@ -355,7 +359,7 @@ function GuidedSession({
     const week1Done = new Set(
       history.filter((l) => l.planId === plan.id && l.week === 1 && l.finishedAt).map((l) => l.sessionIndex),
     ).add(log.sessionIndex)
-    if (profile.status === 'calibration' && log.week === 1 && week1Done.size >= plan.sessions.length) {
+    if (profile.status === 'calibration' && !log.deload && log.week === 1 && week1Done.size >= plan.sessions.length) {
       await db.profiles.update(profile.id, { status: 'active' })
     }
     setTimer(null)
@@ -380,8 +384,15 @@ function GuidedSession({
         </span>
       </div>
       <div className="alert info" style={{ fontSize: '0.88rem' }}>
+        {log.readiness === 'reduced' && (
+          <>
+            <strong>Sesión ajustada:</strong> un tercio menos de series y una repetición más en reserva.{' '}
+          </>
+        )}
         <strong>Objetivo de hoy:</strong>{' '}
-        {log.week === 1
+        {log.deload
+          ? 'recuperar: cargas cómodas, menos series y lejos del fallo (RIR 3–5).'
+          : log.week === 1
           ? 'encontrar cargas con ~3 repeticiones en reserva y técnica impecable.'
           : `acumular series de calidad en ${log.entries[0] ? fmtRir(log.entries[0].rirTarget) : 'el RIR indicado'} y superar la sesión anterior en repeticiones o carga.`}{' '}
         Registra cada serie para recibir la sugerencia de la siguiente.
@@ -456,11 +467,8 @@ export function WorkoutPage() {
   const next = nextSession(plan, history)
   if (!next) {
     return (
-      <div className="card empty">
-        <p>Completaste el mesociclo de {plan.weeks} semanas.</p>
-        <Link className="btn primary" to="/plan">
-          Generar el siguiente
-        </Link>
+      <div className="card narrow">
+        <CycleComplete plan={plan} />
       </div>
     )
   }
@@ -475,7 +483,9 @@ export function WorkoutPage() {
 /** Sesiones de la semana: se puede elegir cualquiera pendiente; la sugerida viene marcada. */
 function SessionPicker({ plan, next, profileId }: { plan: Plan; next: NextSession; profileId: string }) {
   const [selected, setSelected] = useState(next.sessionIndex)
+  const [readiness, setReadiness] = useState<'normal' | 'reduced'>('normal')
   const session = plan.sessions[selected]
+  const deload = plan.kind === 'deload'
 
   async function start() {
     const log: WorkoutLog = {
@@ -485,15 +495,20 @@ function SessionPicker({ plan, next, profileId }: { plan: Plan; next: NextSessio
       week: next.week,
       sessionIndex: selected,
       startedAt: new Date().toISOString(),
-      entries: session.exercises.map((pe) => ({
-        exerciseId: pe.exerciseId,
-        muscle: pe.muscle,
-        plannedSets: pe.sets,
-        repRange: pe.repRange,
-        rirTarget: rirTarget(next.week, plan.weeks, getExercise(pe.exerciseId)),
-        restSec: pe.restSec,
-        sets: [],
-      })),
+      readiness,
+      deload: deload || undefined,
+      entries: session.exercises.map((pe) => {
+        const entry: LoggedExercise = {
+          exerciseId: pe.exerciseId,
+          muscle: pe.muscle,
+          plannedSets: pe.sets,
+          repRange: pe.repRange,
+          rirTarget: sessionRir(plan, next.week, getExercise(pe.exerciseId)),
+          restSec: pe.restSec,
+          sets: [],
+        }
+        return readiness === 'reduced' && !deload ? reduceForReadiness(entry) : entry
+      }),
     }
     await db.workouts.add(log)
   }
@@ -539,6 +554,30 @@ function SessionPicker({ plan, next, profileId }: { plan: Plan; next: NextSessio
           Si entrenaste algo fuera de la app, elige la sesión que deje descansar esos músculos.
         </small>
       </div>
+
+      {deload ? (
+        <div className="alert info">
+          <strong>Semana de descarga.</strong> Menos series, cargas cómodas (~90 %) y lejos del fallo (RIR 3–5). El objetivo es
+          recuperar, no progresar.
+        </div>
+      ) : (
+        <div className="stack-sm">
+          <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>¿Cómo llegas hoy?</span>
+          <div className="chips">
+            <button type="button" className={`chip ${readiness === 'normal' ? 'on' : ''}`} aria-pressed={readiness === 'normal'} onClick={() => setReadiness('normal')}>
+              Bien
+            </button>
+            <button type="button" className={`chip ${readiness === 'reduced' ? 'on' : ''}`} aria-pressed={readiness === 'reduced'} onClick={() => setReadiness('reduced')}>
+              Con menos energía
+            </button>
+          </div>
+          <small>
+            {readiness === 'reduced'
+              ? 'Cansancio, poco sueño, estrés o síntomas (por ejemplo del ciclo menstrual): hoy harás un tercio menos de series y te quedarás una repetición más lejos del fallo. Entrenar así sigue sumando.'
+              : 'Si llegas con cansancio, poco sueño, estrés o síntomas, elige «Con menos energía» y la sesión se ajusta.'}
+          </small>
+        </div>
+      )}
 
       <div className="card stack-sm">
         <div className="spread">

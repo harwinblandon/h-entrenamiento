@@ -17,6 +17,7 @@ import {
 import { emptySafety, evaluateSafety, SAFETY_QUESTIONS } from '../../domain/safety'
 import { todayISO } from '../../domain/schedule'
 import { createPin, PIN_PATTERN } from '../../domain/pin'
+import { LOWER_BODY } from '../../domain/planGenerator'
 import type { Equipment, PinLock, Profile } from '../../domain/types'
 import { EQUIPMENT, MUSCLES } from '../../domain/types'
 import { useActiveProfile } from '../activeProfile'
@@ -330,6 +331,15 @@ export function ProfileForm() {
           />
           {p.equipment.length === 0 && <div className="alert warn">Elige al menos un tipo de equipamiento.</div>}
         </div>
+        <Field
+          label="Distribución"
+          hint="El énfasis en tren inferior entrena pierna y glúteo 3 veces por semana; el tren superior queda en 2"
+        >
+          <select value={p.splitEmphasis ?? 'balanced'} onChange={(e) => set('splitEmphasis', e.target.value as Profile['splitEmphasis'])}>
+            <option value="balanced">Equilibrada</option>
+            <option value="lower">Énfasis en tren inferior (pierna y glúteo)</option>
+          </select>
+        </Field>
         <Field label="Objetivo">
           <select value={p.goal} onChange={(e) => set('goal', e.target.value as Profile['goal'])}>
             {Object.entries(GOAL_LABELS).map(([k, v]) => (
@@ -354,6 +364,11 @@ export function ProfileForm() {
               )
             })}
           </div>
+          {p.priorityMuscles.filter((m) => LOWER_BODY.includes(m)).length >= 2 && (p.splitEmphasis ?? 'balanced') === 'balanced' && (
+            <div className="alert info">
+              Tienes varias prioridades de tren inferior: considera la distribución «Énfasis en tren inferior».
+            </div>
+          )}
           {p.priorityMuscles.length > 3 && (
             <div className="alert warn">Más de 3 prioridades a la vez suele elevar la fatiga. Considera rotarlas entre mesociclos.</div>
           )}

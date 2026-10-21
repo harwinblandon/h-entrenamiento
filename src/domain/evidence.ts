@@ -169,6 +169,72 @@ export const EVIDENCE: EvidenceSource[] = [
     confidence: 'alta',
     limitations: 'La app usa preguntas inspiradas en él, no el instrumento completo.',
   },
+  {
+    id: 'coleman2024deload',
+    citation:
+      'Coleman M, Burke R, Augustin F, et al. Gaining more from doing less? The effects of a one-week deload period during supervised resistance training on muscular adaptations. PeerJ. 2024;12:e16777.',
+    type: 'Ensayo controlado',
+    topic: 'Descarga',
+    finding: 'Una semana sin entrenar a mitad del programa no perjudicó la hipertrofia; algunas medidas de fuerza mejoraron algo menos.',
+    appliesTo: 'Semana de descarga opcional entre mesociclos, sugerida cuando se acumulan señales de fatiga.',
+    confidence: 'baja',
+    limitations: 'Estudió una pausa total, no una descarga con volumen reducido; la utilidad de la descarga se apoya sobre todo en la práctica.',
+  },
+  {
+    id: 'maeo2021hamstrings',
+    citation:
+      'Maeo S, Huang M, Wu Y, et al. Greater hamstrings muscle hypertrophy but similar damage protection after training at long versus short muscle lengths. Med Sci Sports Exerc. 2021;53(4):825-837.',
+    type: 'Ensayo controlado',
+    topic: 'Ejercicios en posición estirada',
+    finding: 'El curl femoral sentado (músculo más estirado) produjo más hipertrofia de isquiotibiales que el curl tumbado.',
+    appliesTo: 'Preferencia por ejercicios que cargan el músculo estirado al elegir ejercicios.',
+    confidence: 'moderada',
+    limitations: 'Muestra pequeña, diseño intrasujeto y un solo grupo muscular.',
+  },
+  {
+    id: 'maeo2023triceps',
+    citation:
+      'Maeo S, Wu Y, Huang M, et al. Triceps brachii hypertrophy is substantially greater after elbow extension training performed in the overhead versus neutral arm position. Eur J Sport Sci. 2023;23(7):1240-1250.',
+    type: 'Ensayo controlado',
+    topic: 'Extensión de tríceps sobre la cabeza',
+    finding: 'La extensión de tríceps con el brazo por encima de la cabeza generó más hipertrofia que con el brazo en posición neutra.',
+    appliesTo: 'Preferencia por extensiones sobre la cabeza para el tríceps.',
+    confidence: 'moderada',
+    limitations: 'Muestra pequeña de personas sin entrenamiento previo.',
+  },
+  {
+    id: 'plotkin2023glutes',
+    citation:
+      'Plotkin DL, Rodas MA, Vigotsky AD, et al. Hip thrust and back squat training elicit similar gluteus muscle hypertrophy and transfer similarly to the deadlift. Front Physiol. 2023;14:1279170.',
+    type: 'Ensayo controlado',
+    topic: 'Glúteo',
+    finding: 'La sentadilla y el hip thrust produjeron una hipertrofia de glúteo similar.',
+    appliesTo: 'El glúteo cuenta trabajo de sentadillas y zancadas, y recibe trabajo directo cuando es prioritario.',
+    confidence: 'moderada',
+    limitations: 'Personas sin entrenamiento previo y duración de 9 semanas.',
+  },
+  {
+    id: 'acog2020pregnancy',
+    citation:
+      'American College of Obstetricians and Gynecologists. Physical activity and exercise during pregnancy and the postpartum period. ACOG Committee Opinion No. 804. Obstet Gynecol. 2020;135(4):e178-e188.',
+    type: 'Revisión narrativa',
+    topic: 'Embarazo y posparto',
+    finding: 'El ejercicio, incluido el de fuerza, es recomendable en embarazos sin complicaciones, con valoración previa y adaptaciones.',
+    appliesTo: 'Autorización profesional, sin trabajo directo de abdomen y menor fatiga en embarazo y posparto.',
+    confidence: 'alta',
+    limitations: 'Guía general: cada embarazo y posparto requiere indicaciones individuales.',
+  },
+  {
+    id: 'watson2018liftmor',
+    citation:
+      'Watson SL, Weeks BK, Weis LJ, et al. High-intensity resistance and impact training improves bone mineral density and physical function in postmenopausal women with osteopenia and osteoporosis: the LIFTMOR randomized controlled trial. J Bone Miner Res. 2018;33(2):211-220.',
+    type: 'Ensayo controlado',
+    topic: 'Menopausia y hueso',
+    finding: 'El entrenamiento de fuerza de alta intensidad supervisado mejoró la densidad ósea y la función física, sin lesiones relevantes.',
+    appliesTo: 'Recomendación de fuerza progresiva en perimenopausia y menopausia.',
+    confidence: 'moderada',
+    limitations: 'Entrenamiento supervisado; muestra moderada.',
+  },
 ]
 
 export function getSource(id: string): EvidenceSource | undefined {

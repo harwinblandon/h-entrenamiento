@@ -49,7 +49,7 @@ function VolumeTable({ plan }: { plan: Plan }) {
         <tbody>
           {MUSCLES.map((m) => {
             const v = plan.weeklyVolume[m]
-            if (v.effective === 0 && v.target === 0) return null
+            if (!v || (v.effective === 0 && v.target === 0)) return null
             const status = volumeStatus(v)
             return (
               <tr key={m}>
@@ -86,6 +86,22 @@ function VolumeTable({ plan }: { plan: Plan }) {
 }
 
 function PlanView({ plan, profile }: { plan: Plan; profile: Profile }) {
+  const banner =
+    plan.kind === 'deload' ? (
+      <div className="alert info">
+        <strong>Semana de descarga.</strong> Mismos ejercicios con ~40 % menos series, ~90 % de la carga y RIR 3–5. Al
+        terminarla empieza el siguiente mesociclo, ya preparado.
+      </div>
+    ) : plan.adjustments?.length ? (
+      <div className="alert info">
+        <strong>Ajustes desde el mesociclo anterior</strong>
+        <ul>
+          {plan.adjustments.map((a) => (
+            <li key={a}>{a}</li>
+          ))}
+        </ul>
+      </div>
+    ) : null
   async function swap(sessionIdx: number, exIdx: number, newId: string) {
     const ex = getExercise(newId)
     const sessions = plan.sessions.map((s, i) =>
@@ -94,7 +110,7 @@ function PlanView({ plan, profile }: { plan: Plan; profile: Profile }) {
         : {
             ...s,
             exercises: s.exercises.map((pe, j) =>
-              j !== exIdx ? pe : { ...pe, exerciseId: newId, repRange: repRangeFor(ex), restSec: restFor(ex) },
+              j !== exIdx ? pe : { ...pe, exerciseId: newId, repRange: repRangeFor(ex), restSec: restFor(ex, profile.experience) },
             ),
           },
     )
@@ -104,6 +120,7 @@ function PlanView({ plan, profile }: { plan: Plan; profile: Profile }) {
 
   return (
     <div className="stack">
+      {banner}
       <div className="card">
         <div className="grid-tight">
           <div className="stat">
@@ -249,6 +266,11 @@ export function PlanPage() {
               </option>
             ))}
           </select>
+          {plan && plan.kind !== 'deload' && (logCount ?? 0) > 0 && (
+            <Link className="btn" to="/plan/cierre">
+              Cerrar mesociclo
+            </Link>
+          )}
           <button className="btn primary" onClick={generate} disabled={!safety.canGenerate}>
             {plan ? 'Regenerar mesociclo' : 'Generar mesociclo'}
           </button>

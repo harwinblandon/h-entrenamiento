@@ -5,6 +5,7 @@ import { LockScreen } from './components/LockScreen'
 import { IconBook, IconChart, IconDumbbell, IconFood, IconHome, IconLock, IconPlan, IconUsers } from './components/icons'
 import { Dashboard } from './pages/Dashboard'
 import { EvidencePage } from './pages/EvidencePage'
+import { MesocyclePage } from './pages/MesocyclePage'
 import { NutritionPage } from './pages/NutritionPage'
 import { People } from './pages/People'
 import { PlanPage } from './pages/PlanPage'
@@ -64,6 +65,7 @@ function GuardedRoutes() {
       <Route path="/personas/nueva" element={<ProfileForm />} />
       <Route path="/personas/:id" element={<ProfileForm />} />
       <Route path="/plan" element={<PlanPage />} />
+      <Route path="/plan/cierre" element={<MesocyclePage />} />
       <Route path="/entrenar" element={<WorkoutPage />} />
       <Route path="/progreso" element={<ProgressPage />} />
       <Route path="/nutricion" element={<NutritionPage />} />

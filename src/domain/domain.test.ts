@@ -3,8 +3,9 @@ import { demoProfile } from './demo'
 import { getExercise } from './exercises'
 import { MUSCLE_LABELS } from './labels'
 import { computeNutrition } from './nutrition'
-import { distribute, generatePlan, weeklyTargets } from './planGenerator'
-import { estimate1RM, recommendLoad, suggestNextSet } from './progression'
+import { distribute, generatePlan, splitFor, weeklyTargets } from './planGenerator'
+import { createDeloadPlan, createNextPlan, reviewMesocycle } from './mesocycle'
+import { estimate1RM, recommendLoad, reduceForReadiness, suggestNextSet } from './progression'
 import { createPin, verifyPin } from './pin'
 import { planChanges, planSnapshot } from './planChanges'
 import { emptySafety, evaluateSafety } from './safety'
@@ -112,6 +113,47 @@ describe('generación del plan', () => {
         if (!overWarned) expect(s.estimatedMinutes).toBeLessThanOrEqual(p.sessionMinutes)
       }
     }
+  })
+
+  it('cada músculo con objetivo aparece en al menos dos sesiones de la división', () => {
+    for (const emphasis of ['balanced', 'lower'] as const) {
+      for (const days of [3, 4, 5, 6]) {
+        const split = splitFor(days, emphasis)
+        const p = profile({ daysPerWeek: days, splitEmphasis: emphasis, priorityMuscles: ['glutes', 'adductors'] })
+        const t = weeklyTargets(p)
+        for (const m of MUSCLES) {
+          if (t[m] === 0) continue
+          const freq = split.sessions.filter((s) => s.muscles.includes(m)).length
+          expect(freq, `${m} en ${split.name}`).toBeGreaterThanOrEqual(2)
+        }
+      }
+    }
+  })
+
+  it('el énfasis en tren inferior entrena glúteo tres veces por semana', () => {
+    for (const days of [3, 4, 5, 6]) {
+      const split = splitFor(days, 'lower')
+      expect(split.sessions.filter((s) => s.muscles.includes('glutes')).length).toBeGreaterThanOrEqual(3)
+    }
+  })
+
+  it('un glúteo prioritario recibe al menos la mitad de su objetivo en trabajo directo', () => {
+    const p = profile({ sex: 'female', experience: 'intermediate', daysPerWeek: 4, priorityMuscles: ['glutes'], sessionMinutes: 120 })
+    const v = generatePlan(p).weeklyVolume.glutes
+    expect(v.direct).toBeGreaterThanOrEqual(Math.ceil(v.target / 2))
+  })
+
+  it('en casa con mancuernas hay trabajo directo de glúteo y abdomen', () => {
+    const plan = generatePlan(profile({ equipment: ['dumbbell', 'bodyweight'], daysPerWeek: 3, priorityMuscles: ['glutes'], sessionMinutes: 90 }))
+    expect(plan.weeklyVolume.glutes.direct).toBeGreaterThan(0)
+    expect(plan.weeklyVolume.abs.direct).toBeGreaterThan(0)
+  })
+
+  it('en embarazo no hay flexión de tronco ni objetivo de abdomen', () => {
+    const plan = generatePlan(profile({ sex: 'female', lifeStage: 'pregnancy', daysPerWeek: 4 }))
+    const exs = plan.sessions.flatMap((s) => s.exercises.map((e) => getExercise(e.exerciseId)))
+    expect(exs.some((e) => e.trunkFlexion)).toBe(false)
+    expect(plan.weeklyVolume.abs.target).toBe(0)
   })
 
   it('no parte un músculo en ejercicios de pocas series dentro de una sesión', () => {
@@ -282,6 +324,73 @@ describe('progreso', () => {
     const a = adherence(plan, logs)
     expect(a.sessionsDone).toBe(2)
     expect(a.setCompliancePct).toBe(67)
+  })
+})
+
+describe('cierre de mesociclo', () => {
+  const p = profile({ priorityMuscles: [] })
+  const plan = generatePlan(p, { id: 'meso', weeks: 4 })
+  const torso = plan.sessions[0]
+  const benchIdx = torso.exercises.findIndex((e) => e.muscle === 'chest')
+  const bench = torso.exercises[benchIdx].exerciseId
+  const rowEx = torso.exercises.find((e) => e.muscle === 'back')!.exerciseId
+
+  /** Cuatro semanas de Torso: el pecho progresa; la espalda se estanca. */
+  const logs = (fatigue: number, readiness: 'normal' | 'reduced' = 'normal'): WorkoutLog[] =>
+    [1, 2, 3, 4].map((week) => ({
+      id: `t${week}`, profileId: p.id, planId: 'meso', week, sessionIndex: 0,
+      startedAt: `2026-10-0${week}T10:00:00Z`, finishedAt: `2026-10-0${week}T11:00:00Z`, fatigue, readiness,
+      entries: [
+        { exerciseId: bench, muscle: 'chest', plannedSets: 3, repRange: [6, 10], rirTarget: [2, 2], restSec: 150, sets: [set(80 + week * 2.5, 8), set(80 + week * 2.5, 8), set(80 + week * 2.5, 7)] },
+        { exerciseId: rowEx, muscle: 'back', plannedSets: 3, repRange: [6, 10], rirTarget: [2, 2], restSec: 150, sets: [set(70, 8), set(70, 8), set(70, 7)] },
+      ],
+    }))
+
+  it('detecta progreso y estancamiento por ejercicio', () => {
+    const r = reviewMesocycle(plan, logs(2), p)
+    expect(r.exercises.find((e) => e.exerciseId === bench)!.trend).toBe('progressed')
+    expect(r.exercises.find((e) => e.exerciseId === rowEx)!.trend).toBe('stalled')
+  })
+
+  it('con buena recuperación propone +2 series al músculo estancado y mantener el que progresa', () => {
+    const r = reviewMesocycle(plan, logs(2), p)
+    expect(r.muscles.find((m) => m.muscle === 'back')!.proposedDelta).toBe(2)
+    expect(r.muscles.find((m) => m.muscle === 'chest')!.proposedDelta).toBe(0)
+    expect(r.deloadRecommended).toBe(false)
+  })
+
+  it('con fatiga alta y días de baja energía recomienda descarga y no suma volumen', () => {
+    const r = reviewMesocycle(plan, logs(4, 'reduced'), p)
+    expect(r.deloadRecommended).toBe(true)
+    expect(r.muscles.find((m) => m.muscle === 'back')!.proposedDelta).toBe(0)
+  })
+
+  it('con fatiga no propone cambiar ejercicios estancados (primero recuperar)', () => {
+    expect(reviewMesocycle(plan, logs(4, 'reduced'), p).swaps.every((s) => !s.recommended)).toBe(true)
+    expect(reviewMesocycle(plan, logs(2), p).swaps.find((s) => s.exerciseId === rowEx)!.recommended).toBe(true)
+  })
+
+  it('la descarga reduce series y el siguiente mesociclo aplica los ajustes', () => {
+    const deload = createDeloadPlan(plan)
+    expect(deload.kind).toBe('deload')
+    expect(deload.sessions[0].exercises[0].sets).toBeLessThan(plan.sessions[0].exercises[0].sets)
+
+    const r = reviewMesocycle(plan, logs(2), p)
+    const alt = r.swaps.find((s) => s.exerciseId === rowEx)!.alternatives[0].id
+    const next = createNextPlan(p, r, { weeks: 6, volumeDelta: { back: 2 }, swaps: { [rowEx]: alt } })
+    expect(next.weeklyVolume.back.target).toBe(plan.weeklyVolume.back.target + 2)
+    const ids = next.sessions.flatMap((s) => s.exercises.map((e) => e.exerciseId))
+    expect(ids).not.toContain(rowEx)
+    expect(ids).toContain(alt)
+    expect(ids).toContain(bench)
+  })
+})
+
+describe('ajuste del día', () => {
+  it('reduce un tercio las series y suma una repetición en reserva', () => {
+    const e = reduceForReadiness({ plannedSets: 3, rirTarget: [1, 2] as [number, number] })
+    expect(e.plannedSets).toBe(2)
+    expect(e.rirTarget).toEqual([2, 3])
   })
 })
 

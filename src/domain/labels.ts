@@ -12,6 +12,7 @@ export const MUSCLE_LABELS: Record<Muscle, string> = {
   quads: 'Cuádriceps',
   hamstrings: 'Isquiotibiales',
   glutes: 'Glúteos',
+  adductors: 'Aductores',
   calves: 'Pantorrillas',
   abs: 'Abdomen',
 }

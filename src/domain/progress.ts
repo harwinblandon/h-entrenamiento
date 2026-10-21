@@ -121,7 +121,7 @@ export function personalRecords(logs: WorkoutLog[]): PersonalRecord[] {
 
 /** Series efectivas realizadas por músculo en una semana del plan (directa = 1, indirecta = 0.5). */
 export function weeklyMuscleSets(plan: Plan, logs: WorkoutLog[], week: number): Record<Muscle, { done: number; target: number }> {
-  const out = Object.fromEntries(MUSCLES.map((m) => [m, { done: 0, target: plan.weeklyVolume[m].target }])) as Record<
+  const out = Object.fromEntries(MUSCLES.map((m) => [m, { done: 0, target: plan.weeklyVolume[m]?.target ?? 0 }])) as Record<
     Muscle,
     { done: number; target: number }
   >
