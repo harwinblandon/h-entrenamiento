@@ -27,9 +27,9 @@ export async function seedIfFirstRun(): Promise<string | undefined> {
     return undefined
   }
   if ((await db.profiles.count()) > 0) return undefined
+  // Sin registro de peso: el de la ficha queda como referencia sin confirmar.
   const p = demoProfile()
   await db.profiles.add(p)
-  await db.bodyLogs.add({ id: crypto.randomUUID(), profileId: p.id, date: p.createdAt.slice(0, 10), weightKg: p.weightKg, waistCm: p.waistCm })
   return p.id
 }
 

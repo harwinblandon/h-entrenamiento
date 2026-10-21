@@ -47,6 +47,8 @@ export interface Profile {
   age: number
   heightCm: number
   weightKg: number
+  /** Fecha (YYYY-MM-DD) en que se midió el peso de la ficha, si se conoce. */
+  weightDate?: string
   waistCm?: number
   bodyFatPct?: number
   experience: Experience

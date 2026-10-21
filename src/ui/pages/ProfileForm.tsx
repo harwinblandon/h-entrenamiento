@@ -26,6 +26,7 @@ function newProfile(): Profile {
     age: 30,
     heightCm: 165,
     weightKg: 65,
+    weightDate: todayISO(),
     experience: 'beginner',
     daysPerWeek: 3,
     sessionMinutes: 75,
@@ -133,8 +134,9 @@ export function ProfileForm() {
     const now = new Date().toISOString()
     const saved = { ...p, name: p.name.trim(), updatedAt: now }
     await db.profiles.put(saved)
-    if (!id) {
-      await db.bodyLogs.add({ id: crypto.randomUUID(), profileId: saved.id, date: todayISO(), weightKg: saved.weightKg, waistCm: saved.waistCm })
+    // Solo un peso medido hoy cuenta como pesaje; uno antiguo queda en la ficha como referencia.
+    if (!id && saved.weightDate === todayISO()) {
+      await db.bodyLogs.add({ id: crypto.randomUUID(), profileId: saved.id, date: saved.weightDate, weightKg: saved.weightKg, waistCm: saved.waistCm })
     }
     setActiveId(saved.id)
     navigate('/plan')
@@ -166,8 +168,11 @@ export function ProfileForm() {
           <Field label="Estatura (cm)">
             <NumberInput value={p.heightCm} onChange={(v) => set('heightCm', v ?? 0)} />
           </Field>
-          <Field label="Peso (kg)">
+          <Field label="Peso (kg)" hint="Referencia; se confirma con pesajes en el Panel">
             <NumberInput value={p.weightKg} step={0.1} onChange={(v) => set('weightKg', v ?? 0)} />
+          </Field>
+          <Field label="Fecha de ese peso" hint="Déjala vacía si no la recuerdas">
+            <input type="date" value={p.weightDate ?? ''} max={todayISO()} onChange={(e) => set('weightDate', e.target.value || undefined)} />
           </Field>
           <Field label="Cintura (cm)" hint="A la altura del ombligo, tras exhalar">
             <NumberInput value={p.waistCm} step={0.1} onChange={(v) => set('waistCm', v)} />

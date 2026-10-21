@@ -257,7 +257,7 @@ function ExerciseCard({
 function Summary({ log, history, onClose }: { log: WorkoutLog; history: WorkoutLog[]; onClose: () => void }) {
   const s = summarizeSession(log, history)
   return (
-    <div className="stack">
+    <div className="stack narrow">
       <h1>Resumen de la sesión</h1>
       <div className="card grid-tight">
         <div className="stat">
@@ -362,7 +362,7 @@ function GuidedSession({
   }
 
   return (
-    <div className="stack">
+    <div className="stack narrow">
       <div className="spread">
         <div>
           <h1>{session.name}</h1>
@@ -488,7 +488,7 @@ export function WorkoutPage() {
   }
 
   return (
-    <div className="stack">
+    <div className="stack narrow">
       <div className="spread">
         <div>
           <h1>Entrenamiento de hoy</h1>

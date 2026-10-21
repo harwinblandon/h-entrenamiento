@@ -44,6 +44,38 @@ export function weightTrend(logs: BodyLog[], today = new Date()): WeightTrend {
   }
 }
 
+export interface WeightStatus {
+  /** Peso a usar en los cálculos: promedio de 7 días, último registro o el de la ficha. */
+  weightKg: number
+  source: 'average' | 'latest' | 'profile'
+  /** Días desde el último registro, si existe. */
+  daysAgo?: number
+  /** Registros en los últimos 7 días. */
+  recentCount: number
+  /** Al menos 3 pesajes en los últimos 7 días. */
+  confirmed: boolean
+}
+
+export const WEIGHINS_TO_CONFIRM = 3
+
+export function weightStatus(logs: BodyLog[], profileWeight: number, today = new Date()): WeightStatus {
+  const t = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
+  const withWeight = logs.filter((l) => l.weightKg !== undefined)
+  const recentCount = withWeight.filter((l) => {
+    const age = (t - Date.parse(l.date)) / DAY
+    return age >= 0 && age < 7
+  }).length
+  const latest = [...withWeight].sort((a, b) => b.date.localeCompare(a.date))[0]
+  const daysAgo = latest ? Math.round((t - Date.parse(latest.date)) / DAY) : undefined
+  const trend = weightTrend(logs, today)
+  const confirmed = recentCount >= WEIGHINS_TO_CONFIRM
+  if (confirmed && trend.current !== undefined) {
+    return { weightKg: Math.round(trend.current * 10) / 10, source: 'average', daysAgo, recentCount, confirmed }
+  }
+  if (latest) return { weightKg: latest.weightKg!, source: 'latest', daysAgo, recentCount, confirmed }
+  return { weightKg: profileWeight, source: 'profile', recentCount, confirmed }
+}
+
 export function latestWeight(logs: BodyLog[]): number | undefined {
   return [...logs].filter((l) => l.weightKg !== undefined).sort((a, b) => b.date.localeCompare(a.date))[0]?.weightKg
 }

@@ -6,6 +6,7 @@ import { computeNutrition } from './nutrition'
 import { distribute, generatePlan, weeklyTargets } from './planGenerator'
 import { estimate1RM, recommendLoad, suggestNextSet } from './progression'
 import { emptySafety, evaluateSafety } from './safety'
+import { weightStatus } from './schedule'
 import type { LoggedExercise, LoggedSet, Profile } from './types'
 import { MUSCLES } from './types'
 
@@ -151,6 +152,28 @@ describe('nutrición', () => {
   it('no propone déficit en embarazo y oculta calorías con antecedentes de TCA', () => {
     expect(computeNutrition(profile({ goal: 'cut', lifeStage: 'pregnancy' })).adjustmentPct).toBe(0)
     expect(computeNutrition(profile({ safety: { ...emptySafety(), eatingDisorderHistory: true } })).hidden).toBe(true)
+  })
+})
+
+describe('estado del peso', () => {
+  const today = new Date(2026, 9, 21)
+  const log = (date: string, weightKg: number) => ({ id: date, profileId: 'p', date, weightKg })
+
+  it('usa el peso de la ficha sin registros y no lo da por confirmado', () => {
+    const s = weightStatus([], 75.5, today)
+    expect(s).toMatchObject({ weightKg: 75.5, source: 'profile', confirmed: false })
+  })
+
+  it('un registro antiguo no confirma el peso', () => {
+    const s = weightStatus([log('2026-08-20', 75.5)], 75.5, today)
+    expect(s.source).toBe('latest')
+    expect(s.daysAgo).toBe(62)
+    expect(s.confirmed).toBe(false)
+  })
+
+  it('con 3 pesajes en 7 días usa el promedio', () => {
+    const s = weightStatus([log('2026-10-19', 76), log('2026-10-20', 76.4), log('2026-10-21', 76.2)], 75.5, today)
+    expect(s).toMatchObject({ weightKg: 76.2, source: 'average', confirmed: true })
   })
 })
 

@@ -77,7 +77,9 @@ small, .muted { color: var(--muted); }
   position: sticky; top: 0; z-index: 5;
 }
 .topbar .brand { display: none; padding: 0; }
-.content { padding: 1.25rem; max-width: 1080px; margin: 0 auto; }
+.content { padding: 1.5rem 2rem; max-width: 1680px; margin: 0 auto; }
+.narrow { max-width: 920px; margin: 0 auto; width: 100%; }
+@media (min-width: 1400px) { :root { font-size: 16px; } }
 .bottom-nav { display: none; }
 
 @media (max-width: 760px) {
@@ -106,7 +108,9 @@ small, .muted { color: var(--muted); }
 .stack-sm { display: flex; flex-direction: column; gap: 0.5rem; }
 .row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 .spread { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
-.grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.cols-2 { display: grid; gap: 1rem; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 1100px) { .cols-2 { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
 .grid-tight { display: grid; gap: 0.6rem; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
 
 .stat { display: flex; flex-direction: column; gap: 2px; }
@@ -200,4 +204,12 @@ td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; }
 .explain h3 { margin-bottom: 0.2rem; }
 .explain p { font-size: 0.92rem; margin-bottom: 0.3rem; }
 .sources { font-size: 0.78rem; color: var(--muted); }
+.steps { display: grid; gap: 0.6rem; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.step { display: flex; gap: 0.7rem; align-items: flex-start; padding: 0.7rem; border: 1px solid var(--border); border-radius: 8px; }
+.step.done { opacity: 0.6; }
+.step-mark {
+  width: 1.6rem; height: 1.6rem; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0;
+  font-size: 0.8rem; font-weight: 700; background: var(--surface-2); color: var(--muted);
+}
+.step.done .step-mark { background: var(--accent); color: var(--accent-text); }
 .empty { text-align: center; padding: 2.5rem 1rem; color: var(--muted); }

@@ -181,14 +181,16 @@ function PlanView({ plan, profile }: { plan: Plan; profile: Profile }) {
         ))}
       </div>
 
-      <div className="card stack-sm">
-        <h2>Volumen semanal por músculo</h2>
-        <VolumeTable plan={plan} />
-      </div>
+      <div className="cols-2">
+        <div className="card stack-sm">
+          <h2>Volumen semanal por músculo</h2>
+          <VolumeTable plan={plan} />
+        </div>
 
-      <div className="card stack-sm">
-        <h2>¿Por qué este plan?</h2>
-        <Explanations items={plan.explanations} />
+        <div className="card stack-sm">
+          <h2>¿Por qué este plan?</h2>
+          <Explanations items={plan.explanations} />
+        </div>
       </div>
     </div>
   )
