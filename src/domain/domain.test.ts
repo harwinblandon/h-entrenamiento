@@ -8,8 +8,8 @@ import { estimate1RM, recommendLoad, suggestNextSet } from './progression'
 import { createPin, verifyPin } from './pin'
 import { planChanges, planSnapshot } from './planChanges'
 import { emptySafety, evaluateSafety } from './safety'
-import { weightStatus } from './schedule'
-import type { LoggedExercise, LoggedSet, Profile } from './types'
+import { nextSession, weightStatus } from './schedule'
+import type { LoggedExercise, LoggedSet, Profile, WorkoutLog } from './types'
 import { MUSCLES } from './types'
 
 const profile = (over: Partial<Profile> = {}): Profile => ({ ...demoProfile(new Date('2026-01-01')), ...over })
@@ -201,6 +201,41 @@ describe('cardio', () => {
     // MET medio 6.75 → (6.75 − 1) × 75.5 kg × 0.5 h ≈ 217 kcal/sesión × 3 / 7 ≈ 93 kcal/día
     expect(con.cardioKcalPerDay).toBe(93)
     expect(con.tdee - sin.tdee).toBeGreaterThanOrEqual(90)
+  })
+})
+
+describe('elección de la sesión del día', () => {
+  const plan = generatePlan(profile(), { id: 'plan', weeks: 6 }) // Torso, Pierna A, Empuje, Tracción, Pierna B
+  const done = (sessionIndex: number, week: number, finishedAt: string): WorkoutLog => ({
+    id: `${week}-${sessionIndex}`,
+    profileId: 'p',
+    planId: 'plan',
+    week,
+    sessionIndex,
+    startedAt: finishedAt,
+    finishedAt,
+    entries: plan.sessions[sessionIndex].exercises.map((pe) => ({
+      exerciseId: pe.exerciseId, muscle: pe.muscle, plannedSets: pe.sets, repRange: pe.repRange,
+      rirTarget: [3, 3] as [number, number], restSec: pe.restSec, sets: [],
+    })),
+  })
+  const now = new Date('2026-10-22T12:00:00Z')
+
+  it('sin historial sugiere el día 1', () => {
+    expect(nextSession(plan, [], now)).toMatchObject({ week: 1, sessionIndex: 0, pending: [0, 1, 2, 3, 4] })
+  })
+
+  it('después de Torso sugiere una sesión que no repita músculos', () => {
+    const next = nextSession(plan, [done(0, 1, '2026-10-21T18:00:00Z')], now)!
+    expect(next.sessionIndex).toBe(1) // Pierna A
+    expect(next.reason).toContain('ayer')
+  })
+
+  it('permite hacer las sesiones en otro orden y avanza de semana al completarlas todas', () => {
+    const logs = [done(1, 1, '2026-10-19T18:00:00Z'), done(4, 1, '2026-10-20T18:00:00Z')]
+    expect(nextSession(plan, logs, now)!.pending).toEqual([0, 2, 3])
+    const fullWeek = [0, 1, 2, 3, 4].map((i) => done(i, 1, `2026-10-1${i}T18:00:00Z`))
+    expect(nextSession(plan, fullWeek, now)!.week).toBe(2)
   })
 })
 

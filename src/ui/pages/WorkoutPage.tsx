@@ -14,7 +14,7 @@ import {
   warmupSets,
   type SetSuggestion,
 } from '../../domain/progression'
-import { nextSession } from '../../domain/schedule'
+import { nextSession, type NextSession } from '../../domain/schedule'
 import type { LoggedExercise, LoggedSet, Plan, Profile, Technique, WorkoutLog } from '../../domain/types'
 import { useActiveProfile } from '../activeProfile'
 import { RestTimer, type TimerState } from '../components/RestTimer'
@@ -351,7 +351,11 @@ function GuidedSession({
 
   async function finish() {
     await db.workouts.update(log.id, { finishedAt: new Date().toISOString(), fatigue, notes: notes.trim() || undefined })
-    if (profile.status === 'calibration' && log.week === 1 && log.sessionIndex === plan.sessions.length - 1) {
+    // La calibración termina cuando se completan todas las sesiones de la semana 1, en cualquier orden.
+    const week1Done = new Set(
+      history.filter((l) => l.planId === plan.id && l.week === 1 && l.finishedAt).map((l) => l.sessionIndex),
+    ).add(log.sessionIndex)
+    if (profile.status === 'calibration' && log.week === 1 && week1Done.size >= plan.sessions.length) {
       await db.profiles.update(profile.id, { status: 'active' })
     }
     setTimer(null)
@@ -465,22 +469,28 @@ export function WorkoutPage() {
     return <GuidedSession log={next.inProgress} plan={plan} profile={active} history={history} onFinished={setSummaryId} />
   }
 
-  const session = plan.sessions[next.sessionIndex]
+  return <SessionPicker plan={plan} next={next} profileId={active.id} />
+}
+
+/** Sesiones de la semana: se puede elegir cualquiera pendiente; la sugerida viene marcada. */
+function SessionPicker({ plan, next, profileId }: { plan: Plan; next: NextSession; profileId: string }) {
+  const [selected, setSelected] = useState(next.sessionIndex)
+  const session = plan.sessions[selected]
 
   async function start() {
     const log: WorkoutLog = {
       id: crypto.randomUUID(),
-      profileId: active!.id,
-      planId: plan!.id,
-      week: next!.week,
-      sessionIndex: next!.sessionIndex,
+      profileId,
+      planId: plan.id,
+      week: next.week,
+      sessionIndex: selected,
       startedAt: new Date().toISOString(),
       entries: session.exercises.map((pe) => ({
         exerciseId: pe.exerciseId,
         muscle: pe.muscle,
         plannedSets: pe.sets,
         repRange: pe.repRange,
-        rirTarget: rirTarget(next!.week, plan!.weeks, getExercise(pe.exerciseId)),
+        rirTarget: rirTarget(next.week, plan.weeks, getExercise(pe.exerciseId)),
         restSec: pe.restSec,
         sets: [],
       })),
@@ -490,14 +500,46 @@ export function WorkoutPage() {
 
   return (
     <div className="stack narrow">
-      <div className="spread">
-        <div>
-          <h1>Entrenamiento de hoy</h1>
-          <small>
-            Semana {next.week} de {plan.weeks} · Día {next.sessionIndex + 1}
-          </small>
-        </div>
+      <div>
+        <h1>Entrenamiento de hoy</h1>
+        <small>
+          Semana {next.week} de {plan.weeks} · {next.done.length} de {plan.sessions.length} sesiones hechas esta semana
+        </small>
       </div>
+
+      <div className="stack-sm">
+        <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>Elige la sesión de hoy</span>
+        <div className="session-options">
+          {plan.sessions.map((s, i) => {
+            const isDone = next.done.includes(i)
+            return (
+              <button
+                key={s.name}
+                type="button"
+                className={`session-option ${selected === i ? 'on' : ''}`}
+                disabled={isDone}
+                aria-pressed={selected === i}
+                onClick={() => setSelected(i)}
+              >
+                <span className="spread" style={{ width: '100%' }}>
+                  <strong>{s.name}</strong>
+                  {isDone ? (
+                    <span className="badge">✓ Hecha</span>
+                  ) : i === next.sessionIndex ? (
+                    <span className="badge accent">Sugerida</span>
+                  ) : null}
+                </span>
+                <small>{s.focus}</small>
+              </button>
+            )
+          })}
+        </div>
+        {selected === next.sessionIndex && <small>Sugerida: {next.reason}</small>}
+        <small>
+          Si entrenaste algo fuera de la app, elige la sesión que deje descansar esos músculos.
+        </small>
+      </div>
+
       <div className="card stack-sm">
         <div className="spread">
           <h2 style={{ margin: 0 }}>{session.name}</h2>
@@ -515,7 +557,7 @@ export function WorkoutPage() {
           ))}
         </ol>
         <button className="btn primary" onClick={start}>
-          Empezar sesión
+          Empezar {session.name}
         </button>
       </div>
     </div>

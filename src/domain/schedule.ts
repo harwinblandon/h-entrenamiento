@@ -1,21 +1,69 @@
-import type { BodyLog, Plan, WorkoutLog } from './types'
+import type { BodyLog, Muscle, Plan, WorkoutLog } from './types'
+
+const DAY = 86_400_000
 
 export interface NextSession {
   week: number
+  /** Sesión sugerida (o la que está en curso). */
   sessionIndex: number
   /** Sesión en curso (iniciada y sin terminar), si existe. */
   inProgress?: WorkoutLog
+  /** Sesiones de la semana actual ya terminadas y pendientes. */
+  done: number[]
+  pending: number[]
+  /** Por qué se sugiere esta sesión. */
+  reason: string
 }
 
-/** La siguiente sesión es la primera del plan que aún no se ha terminado, en orden. */
-export function nextSession(plan: Plan, logs: WorkoutLog[]): NextSession | null {
+/** Músculos objetivo de una sesión del plan. */
+function sessionMuscles(plan: Plan, index: number): Set<Muscle> {
+  return new Set(plan.sessions[index].exercises.map((e) => e.muscle))
+}
+
+/**
+ * La semana actual es la primera con sesiones sin terminar; se pueden hacer en cualquier orden.
+ * Se sugiere la pendiente que menos músculos repite respecto a la última sesión terminada.
+ */
+export function nextSession(plan: Plan, logs: WorkoutLog[], now = new Date()): NextSession | null {
   const planLogs = logs.filter((l) => l.planId === plan.id)
+  const finished = planLogs.filter((l) => l.finishedAt)
   const inProgress = planLogs.find((l) => !l.finishedAt)
-  if (inProgress) return { week: inProgress.week, sessionIndex: inProgress.sessionIndex, inProgress }
-  const done = planLogs.filter((l) => l.finishedAt).length
-  const week = Math.floor(done / plan.sessions.length) + 1
-  if (week > plan.weeks) return null
-  return { week, sessionIndex: done % plan.sessions.length }
+
+  let week = 0
+  let done: number[] = []
+  for (let w = 1; w <= plan.weeks; w++) {
+    done = [...new Set(finished.filter((l) => l.week === w).map((l) => l.sessionIndex))]
+    if (done.length < plan.sessions.length) {
+      week = w
+      break
+    }
+  }
+  if (week === 0 && !inProgress) return null
+  const pending = plan.sessions.map((_, i) => i).filter((i) => !done.includes(i))
+
+  if (inProgress) {
+    return { week: inProgress.week, sessionIndex: inProgress.sessionIndex, inProgress, done, pending, reason: 'Sesión en curso.' }
+  }
+
+  const last = [...finished].sort((a, b) => (b.finishedAt ?? '').localeCompare(a.finishedAt ?? ''))[0]
+  if (!last) return { week, sessionIndex: pending[0], done, pending, reason: 'Primera sesión del plan.' }
+
+  const lastMuscles = new Set(last.entries.map((e) => e.muscle))
+  const overlap = (i: number) => {
+    const m = [...sessionMuscles(plan, i)]
+    return m.filter((x) => lastMuscles.has(x)).length / (m.length || 1)
+  }
+  const suggested = [...pending].sort((a, b) => overlap(a) - overlap(b) || a - b)[0]
+  // Días de calendario (no horas): una sesión de ayer por la tarde cuenta como "ayer".
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+  const days = Math.round((startOfDay(now) - startOfDay(new Date(last.finishedAt!))) / DAY)
+  const when = days <= 0 ? 'hoy' : days === 1 ? 'ayer' : `hace ${days} días`
+  const lastName = plan.sessions[last.sessionIndex]?.name ?? 'la última sesión'
+  const reason =
+    overlap(suggested) === 0
+      ? `No repite músculos de ${lastName} (${when}).`
+      : `Es la que menos músculos repite de ${lastName} (${when}).`
+  return { week, sessionIndex: suggested, done, pending, reason }
 }
 
 export interface WeightTrend {
@@ -26,8 +74,6 @@ export interface WeightTrend {
   changePct?: number
   entries: number
 }
-
-const DAY = 86_400_000
 
 export function weightTrend(logs: BodyLog[], today = new Date()): WeightTrend {
   const withWeight = logs.filter((l) => l.weightKg !== undefined)

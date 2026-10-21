@@ -247,8 +247,9 @@ export function Dashboard() {
               <small>
                 {finished} de {plan.weeks * plan.sessions.length} sesiones del mesociclo
               </small>
+              {!next.inProgress && <small>Sugerida: {next.reason}</small>}
               <Link className="btn primary" to="/entrenar">
-                {next.inProgress ? 'Continuar sesión' : 'Empezar'}
+                {next.inProgress ? 'Continuar sesión' : 'Empezar o elegir otra sesión'}
               </Link>
             </>
           )}
