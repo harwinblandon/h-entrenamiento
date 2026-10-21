@@ -8,6 +8,7 @@ import { evaluateSafety } from '../../domain/safety'
 import { nextSession, todayISO, WEIGHINS_TO_CONFIRM, weightStatus, weightTrend } from '../../domain/schedule'
 import type { BodyLog, Plan, Profile, WorkoutLog } from '../../domain/types'
 import { useActiveProfile } from '../activeProfile'
+import { BackupReminder } from '../components/BackupReminder'
 import { CycleComplete } from '../components/CycleComplete'
 import { PlanChangesAlert } from '../components/PlanChangesAlert'
 
@@ -209,6 +210,8 @@ export function Dashboard() {
           </ul>
         </div>
       )}
+
+      <BackupReminder hasData={workouts.some((w) => w.finishedAt) || bodyLogs.length > 0} />
 
       {plan && <PlanChangesAlert plan={plan} profile={active} />}
 

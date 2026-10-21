@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { deleteProfile, exportData, importData } from '../../db/db'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { deleteProfile, importData } from '../../db/db'
+import { downloadBackup, isInstalled, isStoragePersistent, lastBackupDate } from '../../db/storage'
 import { EXPERIENCE_LABELS, GOAL_LABELS } from '../../domain/labels'
 import { evaluateSafety } from '../../domain/safety'
-import { todayISO } from '../../domain/schedule'
 import { useActiveProfile } from '../activeProfile'
 import { applyFont, FONT_OPTIONS, storedFont } from '../appearance'
 
@@ -14,15 +15,12 @@ export function People() {
   const [message, setMessage] = useState<string>()
   const [font, setFont] = useState(storedFont)
 
+  const [lastBackup, setLastBackup] = useState(lastBackupDate)
+  const persistent = useLiveQuery(() => isStoragePersistent(), [])
+
   async function onExport() {
-    const data = await exportData()
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `respaldo-entrenamiento-${todayISO()}.json`
-    a.click()
-    URL.revokeObjectURL(url)
+    await downloadBackup()
+    setLastBackup(lastBackupDate())
   }
 
   async function onImport(file: File) {
@@ -141,10 +139,29 @@ export function People() {
 
       <div className="card stack-sm">
         <h2>Respaldo de datos</h2>
-        <p className="muted">
-          Los datos se guardan solo en este dispositivo y navegador. Exporta un respaldo con regularidad y úsalo para pasar
-          los datos a otro dispositivo.
+        <p className="muted" style={{ margin: 0 }}>
+          Los datos se guardan solo en este dispositivo y en este navegador: no se envían a ningún servidor. Exporta un
+          respaldo con regularidad (por ejemplo cada semana) y guárdalo en tu nube o correo; con él puedes recuperar todo o
+          pasar los datos a otro celular o computador.
         </p>
+        <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.88rem' }}>
+          <li>
+            Último respaldo:{' '}
+            <strong>{lastBackup ? new Date(lastBackup).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' }) : 'nunca'}</strong>
+          </li>
+          <li>
+            Almacenamiento protegido contra borrado automático:{' '}
+            <strong>{persistent === undefined ? 'no disponible en este navegador' : persistent ? 'sí' : 'no'}</strong>
+          </li>
+          <li>
+            App instalada en la pantalla de inicio: <strong>{isInstalled() ? 'sí' : 'no'}</strong>
+            {!isInstalled() && ' — instálala desde el menú del navegador («Agregar a pantalla de inicio») para protegerla mejor.'}
+          </li>
+        </ul>
+        <div className="alert warn" style={{ fontSize: '0.88rem' }}>
+          Los datos se pierden si borras los datos o el historial del navegador, si usas el modo incógnito o si desinstalas el
+          navegador. Cada dirección (por ejemplo la del computador y la publicada) guarda sus propios datos.
+        </div>
         <div className="row">
           <button className="btn" onClick={onExport}>
             Exportar respaldo (JSON)
