@@ -40,12 +40,13 @@ body {
 body::before {
   content: '';
   position: fixed;
-  right: -4vw;
-  bottom: -6vh;
-  width: min(62vw, 760px);
-  height: 96vh;
-  background: url('/brand/h-watermark.png') no-repeat right bottom / contain;
-  opacity: 0.045;
+  right: 5vw;
+  top: 50%;
+  transform: translateY(-46%);
+  width: min(48vw, 640px);
+  height: 82vh;
+  background: url('/brand/h-watermark.png') no-repeat center / contain;
+  opacity: 0.075;
   pointer-events: none;
   z-index: 0;
 }
@@ -66,6 +67,10 @@ small, .muted { color: var(--muted); }
   padding: 1rem 0.75rem; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 0.25rem;
 }
 .brand { padding: 0.5rem 0.6rem 1.4rem; }
+.sidebar .brand {
+  display: flex; justify-content: center; padding: 0.75rem 0 1.25rem; margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
 .brand img { height: 44px; width: auto; display: block; }
 .topbar .brand img { height: 30px; }
 .tagline {
@@ -104,7 +109,7 @@ small, .muted { color: var(--muted); }
   .bottom-nav .nav-link {
     flex: 1; flex-direction: column; gap: 2px; justify-content: center; font-size: 0.7rem; padding: 0.3rem 0; border-radius: 0;
   }
-  .bottom-nav .nav-link.active { background: transparent; }
+  .bottom-nav .nav-link.active { background: transparent; box-shadow: inset 0 2px 0 var(--accent); }
 }
 
 /* Componentes */
