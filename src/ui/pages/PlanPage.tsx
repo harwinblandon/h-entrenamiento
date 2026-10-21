@@ -6,7 +6,7 @@ import { getExercise, repRangeFor, restFor, substitutesFor } from '../../domain/
 import { MUSCLE_LABELS } from '../../domain/labels'
 import { computeVolume, weeklyTargets } from '../../domain/planGenerator'
 import { evaluateSafety } from '../../domain/safety'
-import type { Plan, Profile } from '../../domain/types'
+import type { MuscleVolume, Plan, Profile } from '../../domain/types'
 import { MUSCLES } from '../../domain/types'
 import { useActiveProfile } from '../activeProfile'
 import { Explanations } from '../components/Explanations'
@@ -23,8 +23,16 @@ function rirSchedule(weeks: number): string[] {
   ]
 }
 
+/** Estado de cada músculo frente a su propio objetivo (±1 serie de tolerancia; +3 o más es "por encima"). */
+function volumeStatus(v: MuscleVolume): { label: string; badge: string; fill: number } {
+  if (v.target === 0) return { label: 'Indirecto', badge: '', fill: 0 }
+  const fill = Math.min(v.effective / v.target, 1) * 100
+  if (v.effective < v.target - 1) return { label: 'Por debajo', badge: 'warn', fill }
+  if (v.effective >= v.target + 3) return { label: 'Por encima', badge: '', fill }
+  return { label: 'En objetivo', badge: 'accent', fill }
+}
+
 function VolumeTable({ plan }: { plan: Plan }) {
-  const max = Math.max(...MUSCLES.map((m) => Math.max(plan.weeklyVolume[m].effective, plan.weeklyVolume[m].target)), 1)
   return (
     <div className="table-wrap">
       <table>
@@ -32,30 +40,36 @@ function VolumeTable({ plan }: { plan: Plan }) {
           <tr>
             <th>Músculo</th>
             <th className="r">Objetivo</th>
-            <th className="r">Directas</th>
-            <th className="r">Indirectas</th>
+            <th className="r hide-sm">Directas</th>
+            <th className="r hide-sm">Indirectas</th>
             <th className="r">Efectivas</th>
-            <th style={{ width: '30%' }}></th>
+            <th style={{ width: '28%' }}>Estado</th>
           </tr>
         </thead>
         <tbody>
           {MUSCLES.map((m) => {
             const v = plan.weeklyVolume[m]
             if (v.effective === 0 && v.target === 0) return null
+            const status = volumeStatus(v)
             return (
               <tr key={m}>
                 <td>
                   {MUSCLE_LABELS[m]} {v.priority && <span className="badge accent">Prioridad</span>}
                 </td>
                 <td className="r">{v.target || '—'}</td>
-                <td className="r">{v.direct}</td>
-                <td className="r">{v.indirect}</td>
+                <td className="r hide-sm">{v.direct}</td>
+                <td className="r hide-sm">{v.indirect}</td>
                 <td className="r">
                   <strong>{v.effective}</strong>
                 </td>
                 <td>
-                  <div className="bar" title={`${v.effective} de ${v.target}`}>
-                    <span style={{ width: `${(v.effective / max) * 100}%` }} />
+                  <div className="row" style={{ flexWrap: 'nowrap' }}>
+                    {v.target > 0 && (
+                      <div className={`bar hide-sm ${status.badge === 'warn' ? 'warn' : ''}`} style={{ flex: 1 }} title={`${v.effective} de ${v.target}`}>
+                        <span style={{ width: `${status.fill}%` }} />
+                      </div>
+                    )}
+                    <span className={`badge ${status.badge}`}>{status.label}</span>
                   </div>
                 </td>
               </tr>
@@ -64,7 +78,8 @@ function VolumeTable({ plan }: { plan: Plan }) {
         </tbody>
       </table>
       <p className="muted" style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>
-        Series efectivas = directas + 0.5 × indirectas. Los calentamientos no cuentan.
+        Series efectivas = directas + 0.5 × indirectas. Los calentamientos no cuentan. Cada barra se mide contra el
+        objetivo de ese músculo: llena significa objetivo cumplido. Es lo que el plan prescribe, no lo que has entrenado.
       </p>
     </div>
   )
