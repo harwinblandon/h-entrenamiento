@@ -5,11 +5,13 @@ import { EXPERIENCE_LABELS, GOAL_LABELS } from '../../domain/labels'
 import { evaluateSafety } from '../../domain/safety'
 import { todayISO } from '../../domain/schedule'
 import { useActiveProfile } from '../activeProfile'
+import { applyFont, FONT_OPTIONS, storedFont } from '../appearance'
 
 export function People() {
   const { profiles, active, setActiveId } = useActiveProfile()
   const fileRef = useRef<HTMLInputElement>(null)
   const [message, setMessage] = useState<string>()
+  const [font, setFont] = useState(storedFont)
 
   async function onExport() {
     const data = await exportData()
@@ -84,6 +86,31 @@ export function People() {
             </div>
           )
         })}
+      </div>
+
+      <div className="card stack-sm">
+        <h2>Apariencia</h2>
+        <p className="muted">Tipografía de la app. El cambio se aplica al instante y se recuerda en este dispositivo.</p>
+        <div className="font-options">
+          {FONT_OPTIONS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              className={`font-option ${font === f.id ? 'on' : ''}`}
+              aria-pressed={font === f.id}
+              style={{ fontFamily: f.family }}
+              onClick={() => {
+                applyFont(f.id)
+                setFont(f.id)
+              }}
+            >
+              <span className="font-sample">Press de banca 4 × 8</span>
+              <span className="font-name">
+                {f.label} · {f.description}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="card stack-sm">
