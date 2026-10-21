@@ -1,3 +1,4 @@
+import { estimateCardio } from './cardio'
 import type { Experience, Explanation, Goal, JobActivity, Profile } from './types'
 
 export interface NutritionResult {
@@ -5,6 +6,8 @@ export interface NutritionResult {
   bmr: number
   bmrMethod: 'Mifflin-St Jeor' | 'Katch-McArdle'
   activityFactor: number
+  /** Gasto promedio diario atribuido al cardio, kcal. */
+  cardioKcalPerDay: number
   tdee: number
   tdeeRange: [number, number]
   targetKcal: number
@@ -62,7 +65,8 @@ export function computeNutrition(profile: Profile, currentWeightKg = profile.wei
   const useKatch = profile.bodyFatPct !== undefined && profile.bodyFatPct > 3 && profile.bodyFatPct < 60
   const bmr = useKatch ? bmrKatch(w, profile.bodyFatPct!) : bmrMifflin(profile.sex, w, profile.heightCm, profile.age)
   const factor = activityFactor(profile)
-  const tdee = bmr * factor
+  const cardio = estimateCardio(profile.cardio, w)
+  const tdee = bmr * factor + cardio.kcalPerDay
 
   const warnings: string[] = []
   const special = profile.lifeStage === 'pregnancy' || profile.lifeStage === 'postpartum' || profile.safety.pregnancyPostpartum
@@ -111,9 +115,12 @@ export function computeNutrition(profile: Profile, currentWeightKg = profile.wei
       text:
         `Metabolismo basal con ${useKatch ? 'Katch-McArdle (usa tu % de grasa)' : 'Mifflin-St Jeor'}: ${Math.round(bmr)} kcal. ` +
         `Factor de actividad ${factor} (trabajo, pasos y ${profile.daysPerWeek} días de entrenamiento). ` +
+        (cardio.kcalPerDay > 0
+          ? `Cardio: ~${cardio.kcalPerSession} kcal por sesión × ${profile.cardio.daysPerWeek} días = ~${cardio.kcalPerDay} kcal/día de promedio. `
+          : '') +
         'Es una aproximación con un error individual de ±10 % o más: la evolución real del peso dirá cuál es tu gasto.',
       confidence: 'moderada',
-      sourceIds: ['mifflin1990'],
+      sourceIds: cardio.kcalPerDay > 0 ? ['mifflin1990', 'ainsworth2011met'] : ['mifflin1990'],
     },
     {
       title: 'Calorías objetivo',
@@ -149,6 +156,7 @@ export function computeNutrition(profile: Profile, currentWeightKg = profile.wei
     bmr: Math.round(bmr),
     bmrMethod: useKatch ? 'Katch-McArdle' : 'Mifflin-St Jeor',
     activityFactor: factor,
+    cardioKcalPerDay: cardio.kcalPerDay,
     tdee: round10(tdee),
     tdeeRange: [round10(tdee * 0.9), round10(tdee * 1.1)],
     targetKcal,

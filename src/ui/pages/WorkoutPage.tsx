@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { activePlan, db } from '../../db/db'
-import { getExercise, repRangeFor, restFor, substitutesFor } from '../../domain/exercises'
+import { getExercise, isLoadless, repRangeFor, restFor, substitutesFor } from '../../domain/exercises'
 import { MUSCLE_LABELS } from '../../domain/labels'
 import {
   lastEntryFor,
@@ -33,6 +33,7 @@ function SetInput({
   defaultReps: number
   onSubmit: (s: LoggedSet) => void
 }) {
+  const loadless = isLoadless(getExercise(entry.exerciseId))
   const [weight, setWeight] = useState(defaultWeight !== null ? String(defaultWeight) : '')
   const [reps, setReps] = useState(String(defaultReps))
   const [rir, setRir] = useState(String(entry.rirTarget[1]))
@@ -45,7 +46,7 @@ function SetInput({
       <div className="set-row">
         <span className="idx">{entry.sets.length + 1}</span>
         <label className="field">
-          Peso (kg)
+          {loadless ? 'Lastre (kg)' : 'Peso (kg)'}
           <input type="number" inputMode="decimal" step="0.5" value={weight} onChange={(e) => setWeight(e.target.value)} />
         </label>
         <label className="field">
@@ -156,7 +157,7 @@ function ExerciseCard({
         <div className="grid-tight">
           <div className="stat">
             <span className="label">Carga recomendada</span>
-            <span className="value">{rec.weight !== null ? fmtKg(rec.weight) : 'Calibrar'}</span>
+            <span className="value">{isLoadless(ex) ? 'Sin carga' : rec.weight !== null ? fmtKg(rec.weight) : 'Calibrar'}</span>
             {ex.loadNote && <span className="sub">{ex.loadNote}</span>}
           </div>
           <div className="stat">
@@ -234,7 +235,7 @@ function ExerciseCard({
           <SetInput
             key={`${entry.exerciseId}-${entry.sets.length}`}
             entry={entry}
-            defaultWeight={suggestion?.weight ?? rec.weight}
+            defaultWeight={suggestion?.weight ?? rec.weight ?? (isLoadless(ex) ? 0 : null)}
             defaultReps={suggestion?.repsTarget[0] ?? rec.repsTarget[0]}
             onSubmit={logSet}
           />

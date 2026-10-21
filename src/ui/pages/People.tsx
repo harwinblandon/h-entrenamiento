@@ -17,7 +17,7 @@ export function People() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `atlas-respaldo-${todayISO()}.json`
+    a.download = `respaldo-entrenamiento-${todayISO()}.json`
     a.click()
     URL.revokeObjectURL(url)
   }

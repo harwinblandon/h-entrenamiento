@@ -1,80 +1,88 @@
+/* Identidad: monocromo como el logo (marfil sobre negro), serif clásica en títulos. */
 :root {
-  --bg: #f5f6f8;
-  --surface: #ffffff;
-  --surface-2: #eef0f3;
-  --text: #15181d;
-  --muted: #5c6470;
-  --border: #e1e4e9;
-  --accent: #23705f;
-  --accent-soft: #e2f0ec;
-  --accent-text: #ffffff;
-  --warn: #9a6400;
-  --warn-soft: #fbf1dc;
-  --danger: #b3261e;
-  --danger-soft: #fbe5e3;
-  --ok: #23705f;
-  --radius: 10px;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.05);
-  --nav-h: 60px;
-  color-scheme: light;
-  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --bg: #0b0b0c;
+  --surface: rgb(21 21 23 / 0.92);
+  --surface-solid: #151517;
+  --surface-2: #202023;
+  --text: #ecebe6;
+  --muted: #9a9993;
+  --border: #2a2a2e;
+  --accent: #e6dfcf;
+  --accent-soft: #26241f;
+  --accent-text: #0c0c0c;
+  --warn: #e0b45c;
+  --warn-soft: #2d2413;
+  --danger: #e8786d;
+  --danger-soft: #2f1715;
+  --ok: #8fc7a4;
+  --radius: 12px;
+  --shadow: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 8px 24px rgb(0 0 0 / 0.25);
+  --nav-h: 62px;
+  --font-display: 'Cormorant Garamond', 'Cormorant', Georgia, 'Times New Roman', serif;
+  --font-body: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+  color-scheme: dark;
+  font-family: var(--font-body);
   font-size: 15px;
-  line-height: 1.45;
+  line-height: 1.5;
   color: var(--text);
   background: var(--bg);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #101317;
-    --surface: #181c21;
-    --surface-2: #20252c;
-    --text: #e7e9ec;
-    --muted: #98a1ac;
-    --border: #2a3038;
-    --accent: #4bb39c;
-    --accent-soft: #1a332d;
-    --accent-text: #0d1512;
-    --warn: #e0b04f;
-    --warn-soft: #33290f;
-    --danger: #ef7d74;
-    --danger-soft: #3a1c1a;
-    --ok: #4bb39c;
-    color-scheme: dark;
-  }
-}
-
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); }
-h1, h2, h3 { line-height: 1.2; margin: 0 0 0.5rem; }
-h1 { font-size: 1.45rem; }
-h2 { font-size: 1.1rem; }
-h3 { font-size: 0.98rem; }
+body {
+  margin: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 70% 0%, rgb(255 255 255 / 0.045), transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+}
+/* La H de marca de agua: fija, muy tenue y detrás de todo. */
+body::before {
+  content: '';
+  position: fixed;
+  right: -4vw;
+  bottom: -6vh;
+  width: min(62vw, 760px);
+  height: 96vh;
+  background: url('/brand/h-watermark.png') no-repeat right bottom / contain;
+  opacity: 0.045;
+  pointer-events: none;
+  z-index: 0;
+}
+#root { position: relative; z-index: 1; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; line-height: 1.15; margin: 0 0 0.5rem; letter-spacing: 0.005em; }
+h1 { font-size: 2.1rem; }
+h2 { font-size: 1.4rem; }
+h3 { font-size: 1.15rem; }
 p { margin: 0 0 0.6rem; }
-a { color: var(--accent); }
+a { color: var(--accent); text-underline-offset: 3px; }
 small, .muted { color: var(--muted); }
 .num { font-variant-numeric: tabular-nums; }
 
 /* Layout */
 .app { display: flex; min-height: 100vh; }
 .sidebar {
-  width: 220px; flex-shrink: 0; border-right: 1px solid var(--border); background: var(--surface);
+  width: 220px; flex-shrink: 0; border-right: 1px solid var(--border); background: rgb(14 14 15 / 0.9);
   padding: 1rem 0.75rem; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 0.25rem;
 }
-.brand { font-weight: 700; font-size: 1.15rem; letter-spacing: 0.02em; padding: 0.25rem 0.5rem 1rem; }
-.brand span { color: var(--accent); }
+.brand { padding: 0.5rem 0.6rem 1.4rem; }
+.brand img { height: 44px; width: auto; display: block; }
+.topbar .brand img { height: 30px; }
+.tagline {
+  font-family: var(--font-display); font-style: italic; font-size: 1.15rem; color: var(--muted); letter-spacing: 0.01em;
+}
 .nav-link {
   display: flex; align-items: center; gap: 0.6rem; padding: 0.55rem 0.7rem; border-radius: 8px;
   color: var(--muted); text-decoration: none; font-weight: 500;
 }
 .nav-link:hover { background: var(--surface-2); color: var(--text); }
-.nav-link.active { background: var(--accent-soft); color: var(--accent); }
+.nav-link.active { background: var(--accent-soft); color: var(--text); box-shadow: inset 2px 0 0 var(--accent); }
 .nav-link svg { width: 18px; height: 18px; flex-shrink: 0; }
 .main { flex: 1; min-width: 0; }
 .topbar {
   display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
-  padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border); background: var(--surface);
-  position: sticky; top: 0; z-index: 5;
+  padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border); background: rgb(11 11 12 / 0.82);
+  backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 5;
 }
 .topbar .brand { display: none; padding: 0; }
 .content { padding: 1.5rem 2rem; max-width: 1680px; margin: 0 auto; }
@@ -90,7 +98,7 @@ small, .muted { color: var(--muted); }
   .content { padding: 1rem 1rem calc(var(--nav-h) + 1.5rem); }
   .bottom-nav {
     display: flex; position: fixed; bottom: 0; left: 0; right: 0; height: var(--nav-h);
-    background: var(--surface); border-top: 1px solid var(--border); z-index: 10;
+    background: rgb(14 14 15 / 0.94); backdrop-filter: blur(10px); border-top: 1px solid var(--border); z-index: 10;
     padding-bottom: env(safe-area-inset-bottom);
   }
   .bottom-nav .nav-link {
@@ -114,8 +122,8 @@ small, .muted { color: var(--muted); }
 .grid-tight { display: grid; gap: 0.6rem; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
 
 .stat { display: flex; flex-direction: column; gap: 2px; }
-.stat .label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
-.stat .value { font-size: 1.35rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.stat .label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; }
+.stat .value { font-family: var(--font-display); font-size: 1.75rem; font-weight: 600; line-height: 1.1; font-variant-numeric: lining-nums tabular-nums; }
 .stat .sub { font-size: 0.8rem; color: var(--muted); }
 
 .btn {
@@ -150,7 +158,7 @@ small, .muted { color: var(--muted); }
 label.field { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.85rem; font-weight: 500; }
 label.field .hint { font-weight: 400; color: var(--muted); font-size: 0.78rem; }
 input, select, textarea {
-  font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border);
+  font: inherit; color: var(--text); background: var(--surface-solid); border: 1px solid var(--border);
   border-radius: 8px; padding: 0.5rem 0.6rem; min-height: 40px; width: 100%;
 }
 input:focus, select:focus, textarea:focus { outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent); outline-offset: 0; }
@@ -164,13 +172,13 @@ textarea { min-height: 70px; resize: vertical; }
 }
 .chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
 fieldset { border: none; padding: 0; margin: 0; }
-legend { font-weight: 650; font-size: 1.05rem; margin-bottom: 0.75rem; }
+legend { font-family: var(--font-display); font-weight: 600; font-size: 1.4rem; margin-bottom: 0.75rem; }
 
 /* Tablas */
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 th, td { text-align: left; padding: 0.45rem 0.5rem; border-bottom: 1px solid var(--border); }
-th { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+th { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; }
 td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; }
 
 .bar { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; min-width: 60px; }
@@ -191,11 +199,12 @@ td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; }
 .suggestion.reduce { background: var(--warn-soft); }
 .suggestion.increase { background: var(--accent-soft); }
 .timer {
+  font-family: var(--font-body);
   position: fixed; left: 50%; transform: translateX(-50%); bottom: 1rem; z-index: 20;
   background: var(--text); color: var(--bg); border-radius: 99px; padding: 0.5rem 0.6rem 0.5rem 1.1rem;
   display: flex; align-items: center; gap: 0.8rem; box-shadow: 0 6px 24px rgb(0 0 0 / 0.25); font-variant-numeric: tabular-nums;
 }
-.timer .time { font-size: 1.3rem; font-weight: 700; min-width: 3.5rem; }
+.timer .time { font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; min-width: 3.5rem; font-variant-numeric: lining-nums tabular-nums; }
 .timer .btn { white-space: nowrap; min-height: 32px; padding: 0.25rem 0.6rem; background: transparent; color: inherit; border-color: color-mix(in srgb, var(--bg) 40%, transparent); }
 .timer.done { background: var(--accent); color: var(--accent-text); }
 @media (max-width: 760px) { .timer { bottom: calc(var(--nav-h) + 0.75rem); } }

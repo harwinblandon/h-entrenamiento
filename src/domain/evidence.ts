@@ -115,6 +115,17 @@ export const EVIDENCE: EvidenceSource[] = [
     limitations: 'Error individual de ±10 % o más; no considera la composición corporal.',
   },
   {
+    id: 'ainsworth2011met',
+    citation:
+      'Ainsworth BE, Haskell WL, Herrmann SD, et al. 2011 Compendium of Physical Activities: a second update of codes and MET values. Med Sci Sports Exerc. 2011;43(8):1575-1581.',
+    type: 'Instrumento validado',
+    topic: 'Gasto del cardio',
+    finding: 'Asigna a cada actividad un valor MET (múltiplo del gasto en reposo) para estimar su costo energético.',
+    appliesTo: 'Calorías que suma el cardio según modalidad, días y minutos.',
+    confidence: 'moderada',
+    limitations: 'Valores promedio; el gasto real varía con la intensidad, la técnica y la eficiencia de cada persona.',
+  },
+  {
     id: 'morton2018protein',
     citation:
       'Morton RW, Murphy KT, McKellar SR, et al. A systematic review, meta-analysis and meta-regression of the effect of protein supplementation on resistance training-induced gains in muscle mass and strength in healthy adults. Br J Sports Med. 2018;52(6):376-384.',
@@ -156,7 +167,7 @@ export const EVIDENCE: EvidenceSource[] = [
     finding: 'Cuestionario de preparación para la actividad física que identifica cuándo derivar a valoración profesional.',
     appliesTo: 'Evaluación de seguridad antes de generar el plan.',
     confidence: 'alta',
-    limitations: 'Atlas usa preguntas inspiradas en él, no el instrumento completo.',
+    limitations: 'La app usa preguntas inspiradas en él, no el instrumento completo.',
   },
 ]
 

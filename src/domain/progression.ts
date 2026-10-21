@@ -1,4 +1,4 @@
-import { getExercise } from './exercises'
+import { getExercise, isLoadless } from './exercises'
 import type { Exercise, LoggedExercise, LoggedSet, Muscle, WorkoutLog } from './types'
 
 /** Umbral de dolor (0–10) a partir del cual se detiene el ejercicio. */
@@ -50,6 +50,7 @@ export function suggestNextSet(
   ex: Exercise,
 ): SetSuggestion {
   const [lo, hi] = repRange
+  const loadless = isLoadless(ex)
   const step = Math.max(ex.increment, roundToIncrement(set.weight * 0.025, ex.increment))
   const down = (pct: number) => Math.max(0, roundToIncrement(set.weight * (1 - pct), ex.increment))
 
@@ -67,8 +68,9 @@ export function suggestNextSet(
       action: 'reduce',
       weight: w,
       repsTarget: repRange,
-      message:
-        set.technique === 'deteriorated'
+      message: loadless
+        ? `${set.technique === 'deteriorated' ? 'La técnica se deterioró' : `Quedaste por debajo de ${lo} repeticiones`}: reduce la dificultad (menos inclinación o una variante más fácil).`
+        : set.technique === 'deteriorated'
           ? `La técnica se deterioró: baja a ${fmt(w)} kg y prioriza el control.`
           : `Quedaste por debajo de ${lo} repeticiones: baja a ${fmt(w)} kg para volver al rango.`,
     }
@@ -79,15 +81,19 @@ export function suggestNextSet(
       action: 'reduce',
       weight: w,
       repsTarget: repRange,
-      message: `Estuviste más cerca del fallo de lo previsto (RIR ${set.rir}): baja a ${fmt(w)} kg.`,
+      message: loadless
+        ? `Estuviste más cerca del fallo de lo previsto (RIR ${set.rir}): reduce un poco la dificultad.`
+        : `Estuviste más cerca del fallo de lo previsto (RIR ${set.rir}): baja a ${fmt(w)} kg.`,
     }
   }
   if (set.rir > rir[1] + 1 && set.reps >= hi) {
     return {
       action: 'increase',
-      weight: set.weight + step,
+      weight: loadless ? set.weight : set.weight + step,
       repsTarget: repRange,
-      message: `Te sobraron repeticiones (RIR ${set.rir}) en el tope del rango: sube a ${fmt(set.weight + step)} kg.`,
+      message: loadless
+        ? `Te sobraron repeticiones (RIR ${set.rir}) en el tope del rango: aumenta la dificultad (más inclinación, una pierna o pausas).`
+        : `Te sobraron repeticiones (RIR ${set.rir}) en el tope del rango: sube a ${fmt(set.weight + step)} kg.`,
     }
   }
   if (set.rir > rir[1]) {
@@ -137,7 +143,9 @@ export function recommendLoad(
     return {
       weight: null,
       repsTarget: repRange,
-      reason: `Sin registros previos: elige una carga con la que hagas ${hi} repeticiones dejando ~3 en reserva.`,
+      reason: isLoadless(ex)
+        ? `Sin registros previos: elige una inclinación o variante con la que hagas ${hi} repeticiones dejando ~3 en reserva.`
+        : `Sin registros previos: elige una carga con la que hagas ${hi} repeticiones dejando ~3 en reserva.`,
     }
   }
   // La carga de referencia es la más usada en la última sesión.
@@ -151,13 +159,21 @@ export function recommendLoad(
   }
   if (atLoad.some((s) => s.technique === 'deteriorated') || atLoad.some((s) => s.reps < lo)) {
     const w = roundToIncrement(load * 0.95, ex.increment)
-    return { weight: w, repsTarget: repRange, reason: `La última vez la técnica falló o quedaste bajo ${lo} repeticiones: baja a ${fmt(w)} kg y consolida.` }
+    const fix = isLoadless(ex) ? 'usa una variante o inclinación más fácil' : `baja a ${fmt(w)} kg`
+    return { weight: w, repsTarget: repRange, reason: `La última vez la técnica falló o quedaste bajo ${lo} repeticiones: ${fix} y consolida.` }
   }
 
   const jumpPct = load > 0 ? ex.increment / load : 0
   const top = jumpPct > 0.05 ? hi + 2 : hi
   const reachedTop = atLoad.length >= Math.min(last!.plannedSets, sets.length) && atLoad.every((s) => s.reps >= top && s.rir >= rir[0])
 
+  if (reachedTop && isLoadless(ex)) {
+    return {
+      weight: load,
+      repsTarget: [lo, Math.min(hi, lo + 2)],
+      reason: `Alcanzaste ${top} repeticiones en todas las series: aumenta la dificultad (más inclinación, una pierna o pausas) y vuelve a ${lo}–${Math.min(hi, lo + 2)}.`,
+    }
+  }
   if (reachedTop) {
     const pctStep = roundToIncrement(load * 0.025, ex.increment)
     const w = load + Math.max(ex.increment, pctStep)

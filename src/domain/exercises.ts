@@ -1,4 +1,6 @@
-import type { Equipment, EquipmentProfile, Exercise, ExerciseCategory } from './types'
+import type { Equipment, Exercise, ExerciseCategory } from './types'
+
+const TRX_NOTE = 'Sin carga externa: la dificultad se ajusta con el ángulo del cuerpo'
 
 export const EXERCISES: Exercise[] = [
   // Pecho
@@ -347,6 +349,79 @@ export const EXERCISES: Exercise[] = [
     repRange: [10, 15],
     cues: ['Enrollar la pelvis hacia arriba', 'Sin balanceo'],
   },
+  // TRX / suspensión: sin carga externa, la dificultad se ajusta con el ángulo del cuerpo.
+  {
+    id: 'trx_chest_press', name: 'Press de pecho en TRX', primary: ['chest'], secondary: ['triceps', 'delts_front'],
+    category: 'compound', pattern: 'horizontal_press', equipment: 'suspension', increment: 0, failureSafe: true, fatigue: 1,
+    repRange: [8, 15], loadNote: TRX_NOTE,
+    cues: ['Cuerpo rígido como una plancha', 'Más inclinado = más difícil', 'No dejar caer la cadera'],
+  },
+  {
+    id: 'trx_fly', name: 'Aperturas en TRX', primary: ['chest'], secondary: [],
+    category: 'isolation', pattern: 'chest_fly', equipment: 'suspension', increment: 0, failureSafe: false, fatigue: 1,
+    repRange: [10, 15], loadNote: TRX_NOTE,
+    cues: ['Codos ligeramente flexionados y fijos', 'Bajar solo hasta donde el hombro lo tolere'],
+  },
+  {
+    id: 'trx_row', name: 'Remo en TRX', primary: ['back'], secondary: ['biceps', 'delts_rear'],
+    category: 'compound', pattern: 'horizontal_pull', equipment: 'suspension', increment: 0, failureSafe: true, fatigue: 1,
+    repRange: [8, 15], loadNote: TRX_NOTE,
+    cues: ['Cuerpo en línea recta', 'Pies más adelante = más difícil', 'Llevar los codos hacia las costillas'],
+  },
+  {
+    id: 'trx_y_raise', name: 'Elevación en Y en TRX', primary: ['delts_side'], secondary: ['traps', 'delts_rear'],
+    category: 'isolation', pattern: 'lateral_raise', equipment: 'suspension', increment: 0, failureSafe: true, fatigue: 1,
+    repRange: [10, 20], loadNote: TRX_NOTE,
+    cues: ['Brazos extendidos formando una Y', 'Subir con los hombros, sin arquear la espalda'],
+  },
+  {
+    id: 'trx_rear_fly', name: 'Aperturas posteriores en TRX (T)', primary: ['delts_rear'], secondary: ['traps'],
+    category: 'isolation', pattern: 'rear_fly', equipment: 'suspension', increment: 0, failureSafe: true, fatigue: 1,
+    repRange: [10, 20], loadNote: TRX_NOTE,
+    cues: ['Abrir los brazos en T', 'Controlar la bajada'],
+  },
+  {
+    id: 'trx_biceps_curl', name: 'Curl de bíceps en TRX', primary: ['biceps'], secondary: [],
+    category: 'isolation', pattern: 'curl', equipment: 'suspension', increment: 0, failureSafe: true, fatigue: 1,
+    repRange: [10, 15], loadNote: TRX_NOTE,
+    cues: ['Codos altos y fijos', 'Llevar las manos hacia la frente'],
+  },
+  {
+    id: 'trx_triceps_ext', name: 'Extensión de tríceps en TRX', primary: ['triceps'], secondary: [],
+    category: 'isolation', pattern: 'overhead_extension', equipment: 'suspension', increment: 0, failureSafe: true, fatigue: 1,
+    repRange: [10, 15], loadNote: TRX_NOTE,
+    cues: ['Codos apuntando al frente', 'Cuerpo rígido; solo se mueven los antebrazos'],
+  },
+  {
+    id: 'trx_split_squat', name: 'Sentadilla búlgara con pie en TRX', primary: ['quads'], secondary: ['glutes'],
+    category: 'compound', pattern: 'lunge', equipment: 'suspension', increment: 2, failureSafe: false, fatigue: 2,
+    repRange: [8, 15], loadNote: 'Puedes sumar mancuernas: kg por mancuerna (0 = sin carga)',
+    cues: ['Pie trasero en el estribo', 'Bajar vertical, rodilla delantera estable'],
+  },
+  {
+    id: 'trx_pistol', name: 'Sentadilla a una pierna asistida en TRX', primary: ['quads'], secondary: ['glutes'],
+    category: 'compound', pattern: 'squat', equipment: 'suspension', increment: 0, failureSafe: true, fatigue: 1,
+    repRange: [6, 12], loadNote: TRX_NOTE,
+    cues: ['Usar las manos solo lo necesario', 'Bajar controlado y profundo'],
+  },
+  {
+    id: 'trx_hamstring_curl', name: 'Curl femoral en TRX', primary: ['hamstrings'], secondary: ['glutes'],
+    category: 'isolation', pattern: 'knee_flexion', equipment: 'suspension', increment: 0, failureSafe: true, fatigue: 1,
+    repRange: [8, 15], loadNote: TRX_NOTE,
+    cues: ['Talones en los estribos, cadera alta', 'A una pierna = más difícil'],
+  },
+  {
+    id: 'trx_knee_tuck', name: 'Rodillas al pecho en TRX', primary: ['abs'], secondary: [],
+    category: 'isolation', pattern: 'trunk_flexion', equipment: 'suspension', increment: 0, failureSafe: true, fatigue: 1,
+    repRange: [10, 15], loadNote: TRX_NOTE,
+    cues: ['Posición de plancha con pies en los estribos', 'Llevar las rodillas al pecho sin hundir la cadera'],
+  },
+  {
+    id: 'bw_calf_raise', name: 'Elevación de talón a una pierna (peso corporal)', primary: ['calves'], secondary: [],
+    category: 'isolation', pattern: 'calf_raise', equipment: 'bodyweight', increment: 0, failureSafe: true, fatigue: 1,
+    repRange: [12, 20], loadNote: 'Sin carga externa: progresa con pausas y repeticiones',
+    cues: ['Sobre un escalón para ganar recorrido', 'Pausa de 2 s abajo'],
+  },
 ]
 
 const EXERCISE_MAP = new Map(EXERCISES.map((e) => [e.id, e]))
@@ -357,14 +432,13 @@ export function getExercise(id: string): Exercise {
   return ex
 }
 
-const EQUIPMENT_BY_PROFILE: Record<EquipmentProfile, Equipment[]> = {
-  full_gym: ['barbell', 'dumbbell', 'machine', 'cable', 'bodyweight', 'smith'],
-  basic_gym: ['barbell', 'dumbbell', 'cable', 'bodyweight'],
-  home: ['dumbbell', 'bodyweight'],
+export function isAvailable(ex: Exercise, equipment: Equipment[]): boolean {
+  return equipment.includes(ex.equipment)
 }
 
-export function isAvailable(ex: Exercise, equipment: EquipmentProfile): boolean {
-  return EQUIPMENT_BY_PROFILE[equipment].includes(ex.equipment)
+/** Ejercicio sin carga externa medible: progresa por ángulo, variante o repeticiones. */
+export function isLoadless(ex: Exercise): boolean {
+  return ex.increment === 0
 }
 
 const DEFAULT_REP_RANGE: Record<ExerciseCategory, [number, number]> = {
@@ -390,7 +464,7 @@ export function restFor(ex: Exercise): number {
 /** Alternativas que entrenan el mismo músculo principal con el equipamiento disponible. */
 export function substitutesFor(
   exerciseId: string,
-  equipment: EquipmentProfile,
+  equipment: Equipment[],
   avoid: string[] = [],
 ): Exercise[] {
   const ex = getExercise(exerciseId)

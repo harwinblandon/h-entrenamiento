@@ -15,7 +15,7 @@ export function EvidencePage() {
       <div>
         <h1>Biblioteca de evidencia</h1>
         <p className="muted">
-          Fuentes en las que se basan las reglas de Atlas. Última revisión: {new Date(EVIDENCE_REVIEWED).toLocaleDateString('es')}. Las
+          Fuentes en las que se basan las reglas de la app. Última revisión: {new Date(EVIDENCE_REVIEWED).toLocaleDateString('es')}. Las
           fórmulas y rangos son puntos de partida; las decisiones posteriores se basan en tu respuesta individual.
         </p>
       </div>
@@ -33,7 +33,7 @@ export function EvidencePage() {
           </div>
           <p>{s.finding}</p>
           <p style={{ fontSize: '0.9rem' }}>
-            <strong>En Atlas:</strong> {s.appliesTo}
+            <strong>En la app:</strong> {s.appliesTo}
           </p>
           <p style={{ fontSize: '0.9rem' }}>
             <strong>Limitaciones:</strong> {s.limitations}

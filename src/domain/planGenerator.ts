@@ -1,4 +1,4 @@
-import { EXERCISES, getExercise, isAvailable, repRangeFor, restFor } from './exercises'
+import { EXERCISES, getExercise, isAvailable, isLoadless, repRangeFor, restFor } from './exercises'
 import { MUSCLE_LABELS } from './labels'
 import type {
   Exercise,
@@ -175,6 +175,8 @@ function chooseExercise(m: Muscle, slot: number, session: SessionState, ctx: Con
   const usedThisWeek = ctx.usedForMuscle.get(m) ?? new Set<string>()
   const heavyInSession = session.exercises.some((e) => getExercise(e.exerciseId).fatigue === 3)
   const compoundFirst = COMPOUND_FIRST.includes(m)
+  // Con barras, mancuernas, máquinas o poleas, los ejercicios sin carga medible quedan como alternativa.
+  const hasLoaded = profile.equipment.some((e) => e === 'barbell' || e === 'dumbbell' || e === 'machine' || e === 'cable')
 
   let best: Exercise | undefined
   let bestScore = -Infinity
@@ -191,6 +193,7 @@ function chooseExercise(m: Muscle, slot: number, session: SessionState, ctx: Con
     else score += { compound: 0, machine: 5, isolation: 10 }[e.category]
     if (heavyInSession && e.fatigue === 3) score -= 15
     if (profile.experience === 'beginner' && e.category === 'machine') score += 3
+    if (hasLoaded && isLoadless(e)) score -= 25
     score -= index * 0.01 // desempate estable según el orden de la biblioteca
 
     if (score > bestScore) {
@@ -321,6 +324,7 @@ export function generatePlan(profile: Profile, opts: GenerateOptions = {}): Plan
   const ctx: Context = { profile, usedForMuscle: new Map() }
   const indirect = Object.fromEntries(MUSCLES.map((m) => [m, 0])) as Record<Muscle, number>
   const warnings: string[] = []
+  const limitedByEquipment = new Set<Muscle>()
   // Peso de cada sesión: cuantos más músculos trabaja, menos series recibe cada uno.
   const sessionWeight = sessions.map((s) => 1 / Math.sqrt(s.template.muscles.filter((m) => targets[m] > 0).length || 1))
 
@@ -340,7 +344,15 @@ export function generatePlan(profile: Profile, opts: GenerateOptions = {}): Plan
         if (sets === 0) return
         const ex = chooseExercise(m, slot, session, ctx)
         if (!ex) {
-          warnings.push(`No hay ejercicios disponibles para ${MUSCLE_LABELS[m]} con el equipamiento y preferencias actuales.`)
+          // Sin otra variante disponible: las series se suman al ejercicio que ya trabaja ese músculo.
+          // Tope de MAX_SETS_PER_EXERCISE + 1: el resto se pierde por falta de variantes.
+          const existing = session.exercises.find((e) => e.muscle === m)
+          const added = existing ? Math.min(sets, MAX_SETS_PER_EXERCISE + 1 - existing.sets) : 0
+          if (existing && added > 0) {
+            existing.sets += added
+            for (const sm of getExercise(existing.exerciseId).secondary) indirect[sm] += added * INDIRECT_FACTOR
+          }
+          if (added < sets) limitedByEquipment.add(m)
           return
         }
         session.exercises.push({ exerciseId: ex.id, muscle: m, sets, repRange: repRangeFor(ex), restSec: restFor(ex) })
@@ -386,7 +398,10 @@ export function generatePlan(profile: Profile, opts: GenerateOptions = {}): Plan
   for (const m of MUSCLES) {
     const v = weeklyVolume[m]
     if (v.target > 0 && v.effective < v.target - 2) {
-      warnings.push(`${MUSCLE_LABELS[m]} queda en ${v.effective} series efectivas frente a ${v.target} objetivo.`)
+      warnings.push(
+        `${MUSCLE_LABELS[m]} queda en ${v.effective} series efectivas frente a ${v.target} objetivo` +
+          (limitedByEquipment.has(m) ? ' por pocas variantes con el equipamiento elegido.' : '.'),
+      )
     }
   }
 
@@ -399,7 +414,7 @@ export function generatePlan(profile: Profile, opts: GenerateOptions = {}): Plan
     sessions: planned,
     weeklyVolume,
     explanations: explainPlan(profile, split),
-    warnings,
+    warnings: [...new Set(warnings)],
     active: true,
   }
 }

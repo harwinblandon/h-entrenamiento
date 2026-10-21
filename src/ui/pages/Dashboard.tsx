@@ -166,7 +166,7 @@ export function Dashboard() {
   if (profiles && profiles.length === 0) {
     return (
       <div className="card empty stack-sm" style={{ alignItems: 'center' }}>
-        <h1>Bienvenido a Atlas</h1>
+        <h1>Bienvenido</h1>
         <p>Crea la ficha de la primera persona para generar su plan de hipertrofia.</p>
         <Link className="btn primary" to="/personas/nueva">
           Nueva persona

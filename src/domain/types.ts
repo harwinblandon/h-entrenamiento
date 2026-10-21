@@ -2,8 +2,8 @@ export type Sex = 'male' | 'female'
 export type Experience = 'beginner' | 'intermediate' | 'advanced'
 export type Goal = 'gain' | 'maintain' | 'cut'
 export type JobActivity = 'sedentary' | 'moderate' | 'active'
-export type EquipmentProfile = 'full_gym' | 'basic_gym' | 'home'
-export type Equipment = 'barbell' | 'dumbbell' | 'machine' | 'cable' | 'bodyweight' | 'smith'
+export const EQUIPMENT = ['barbell', 'dumbbell', 'machine', 'cable', 'smith', 'suspension', 'bodyweight'] as const
+export type Equipment = (typeof EQUIPMENT)[number]
 export type LifeStage = 'none' | 'menstrual_tracking' | 'menopause' | 'pregnancy' | 'postpartum'
 export type ExerciseCategory = 'compound' | 'machine' | 'isolation'
 export type Confidence = 'alta' | 'moderada' | 'baja'
@@ -40,6 +40,13 @@ export interface SafetyAnswers {
   medicalClearance: boolean
 }
 
+export interface CardioPrefs {
+  modalities: string[]
+  daysPerWeek: number
+  /** Minutos típicos por sesión de cardio. */
+  minutes: number
+}
+
 export interface Profile {
   id: string
   name: string
@@ -54,7 +61,8 @@ export interface Profile {
   experience: Experience
   daysPerWeek: number
   sessionMinutes: number
-  equipment: EquipmentProfile
+  /** Equipamiento disponible. */
+  equipment: Equipment[]
   job: JobActivity
   dailySteps?: number
   sleepHours: number
@@ -69,8 +77,9 @@ export interface Profile {
   priorityMuscles: Muscle[]
   /** Series semanales por músculo que la persona venía haciendo (aprox.). */
   previousWeeklySets?: number
-  supplements: string
-  cardioAvailability: string
+  supplements: string[]
+  supplementsNotes: string
+  cardio: CardioPrefs
   lifeStage: LifeStage
   lifeStageNotes: string
   safety: SafetyAnswers

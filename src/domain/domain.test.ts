@@ -120,7 +120,7 @@ describe('generación del plan', () => {
   })
 
   it('no usa ejercicios evitados ni equipamiento no disponible', () => {
-    const plan = generatePlan(profile({ equipment: 'home', avoidExerciseIds: ['goblet_squat'] }))
+    const plan = generatePlan(profile({ equipment: ['dumbbell', 'bodyweight'], avoidExerciseIds: ['goblet_squat'] }))
     for (const s of plan.sessions) {
       for (const pe of s.exercises) {
         expect(pe.exerciseId).not.toBe('goblet_squat')
@@ -152,6 +152,40 @@ describe('nutrición', () => {
   it('no propone déficit en embarazo y oculta calorías con antecedentes de TCA', () => {
     expect(computeNutrition(profile({ goal: 'cut', lifeStage: 'pregnancy' })).adjustmentPct).toBe(0)
     expect(computeNutrition(profile({ safety: { ...emptySafety(), eatingDisorderHistory: true } })).hidden).toBe(true)
+  })
+})
+
+describe('TRX y ejercicios sin carga', () => {
+  it('genera un plan solo con TRX y peso corporal', () => {
+    const plan = generatePlan(profile({ equipment: ['suspension', 'bodyweight'], daysPerWeek: 3, priorityMuscles: [] }))
+    const used = plan.sessions.flatMap((s) => s.exercises.map((e) => getExercise(e.exerciseId).equipment))
+    expect(used.length).toBeGreaterThan(0)
+    expect(used.every((e) => e === 'suspension' || e === 'bodyweight')).toBe(true)
+    expect(used).toContain('suspension')
+  })
+
+  it('en gimnasio completo con TRX prefiere ejercicios con carga', () => {
+    const plan = generatePlan(profile({ equipment: ['barbell', 'dumbbell', 'machine', 'cable', 'smith', 'bodyweight', 'suspension'] }))
+    const trx = plan.sessions.flatMap((s) => s.exercises).filter((e) => getExercise(e.exerciseId).equipment === 'suspension')
+    expect(trx).toHaveLength(0)
+  })
+
+  it('al llegar al tope pide más dificultad, no más kilos', () => {
+    const row = getExercise('trx_row')
+    const rec = recommendLoad(entry('trx_row', [set(0, 15), set(0, 15)], [8, 15]), [8, 15], [2, 2], row)
+    expect(rec.weight).toBe(0)
+    expect(rec.reason).toContain('dificultad')
+    expect(suggestNextSet(set(0, 15, 5), [8, 15], [2, 2], row).message).toContain('dificultad')
+  })
+})
+
+describe('cardio', () => {
+  it('suma el gasto del cardio al total', () => {
+    const sin = computeNutrition(profile())
+    const con = computeNutrition(profile({ cardio: { modalities: ['walk', 'jump_rope'], daysPerWeek: 3, minutes: 30 } }))
+    // MET medio 6.75 → (6.75 − 1) × 75.5 kg × 0.5 h ≈ 217 kcal/sesión × 3 / 7 ≈ 93 kcal/día
+    expect(con.cardioKcalPerDay).toBe(93)
+    expect(con.tdee - sin.tdee).toBeGreaterThanOrEqual(90)
   })
 })
 

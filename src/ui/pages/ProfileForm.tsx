@@ -3,8 +3,11 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { db } from '../../db/db'
 import { EXERCISES } from '../../domain/exercises'
+import { CARDIO_MODALITIES } from '../../domain/cardio'
 import {
   EQUIPMENT_LABELS,
+  EQUIPMENT_PRESETS,
+  SUPPLEMENTS,
   EXPERIENCE_LABELS,
   GOAL_LABELS,
   JOB_LABELS,
@@ -13,8 +16,8 @@ import {
 } from '../../domain/labels'
 import { emptySafety, evaluateSafety, SAFETY_QUESTIONS } from '../../domain/safety'
 import { todayISO } from '../../domain/schedule'
-import type { Profile } from '../../domain/types'
-import { MUSCLES } from '../../domain/types'
+import type { Equipment, Profile } from '../../domain/types'
+import { EQUIPMENT, MUSCLES } from '../../domain/types'
 import { useActiveProfile } from '../activeProfile'
 
 function newProfile(): Profile {
@@ -30,7 +33,7 @@ function newProfile(): Profile {
     experience: 'beginner',
     daysPerWeek: 3,
     sessionMinutes: 75,
-    equipment: 'full_gym',
+    equipment: ['barbell', 'dumbbell', 'machine', 'cable', 'smith', 'bodyweight'],
     job: 'sedentary',
     sleepHours: 7,
     sleepQuality: 3,
@@ -40,8 +43,9 @@ function newProfile(): Profile {
     preferredExerciseIds: [],
     goal: 'gain',
     priorityMuscles: [],
-    supplements: '',
-    cardioAvailability: '',
+    supplements: [],
+    supplementsNotes: '',
+    cardio: { modalities: [], daysPerWeek: 0, minutes: 0 },
     lifeStage: 'none',
     lifeStageNotes: '',
     safety: emptySafety(),
@@ -84,6 +88,35 @@ function NumberInput({
       value={value ?? ''}
       onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))}
     />
+  )
+}
+
+function ChipSelect({
+  options,
+  selected,
+  onChange,
+}: {
+  options: { value: string; label: string }[]
+  selected: string[]
+  onChange: (v: string[]) => void
+}) {
+  return (
+    <div className="chips">
+      {options.map((o) => {
+        const on = selected.includes(o.value)
+        return (
+          <button
+            type="button"
+            key={o.value}
+            className={`chip ${on ? 'on' : ''}`}
+            aria-pressed={on}
+            onClick={() => onChange(on ? selected.filter((x) => x !== o.value) : [...selected, o.value])}
+          >
+            {o.label}
+          </button>
+        )
+      })}
+    </div>
   )
 }
 
@@ -203,13 +236,6 @@ export function ProfileForm() {
           <Field label="Duración máxima (min)">
             <NumberInput value={p.sessionMinutes} step={5} onChange={(v) => set('sessionMinutes', v ?? 60)} />
           </Field>
-          <Field label="Equipamiento">
-            <select value={p.equipment} onChange={(e) => set('equipment', e.target.value as Profile['equipment'])}>
-              {Object.entries(EQUIPMENT_LABELS).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
-              ))}
-            </select>
-          </Field>
           <Field label="Series semanales previas por músculo" hint="Aprox. lo que venías haciendo; opcional">
             <NumberInput value={p.previousWeeklySets} onChange={(v) => set('previousWeeklySets', v)} />
           </Field>
@@ -219,6 +245,23 @@ export function ProfileForm() {
               <option value="active">Activo (ya conoce sus cargas)</option>
             </select>
           </Field>
+        </div>
+        <div className="stack-sm">
+          <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>Equipamiento disponible</span>
+          <div className="row">
+            <small>Atajos:</small>
+            {EQUIPMENT_PRESETS.map((preset) => (
+              <button type="button" key={preset.label} className="btn small" onClick={() => set('equipment', preset.items)}>
+                {preset.label}
+              </button>
+            ))}
+          </div>
+          <ChipSelect
+            options={EQUIPMENT.map((e) => ({ value: e, label: EQUIPMENT_LABELS[e] }))}
+            selected={p.equipment}
+            onChange={(v) => set('equipment', v as Equipment[])}
+          />
+          {p.equipment.length === 0 && <div className="alert warn">Elige al menos un tipo de equipamiento.</div>}
         </div>
         <Field label="Objetivo">
           <select value={p.goal} onChange={(e) => set('goal', e.target.value as Profile['goal'])}>
@@ -273,13 +316,41 @@ export function ProfileForm() {
             <NumberInput value={p.stress} min={1} max={5} onChange={(v) => set('stress', v ?? 3)} />
           </Field>
         </div>
-        <div className="grid">
-          <Field label="Suplementos utilizados">
-            <input value={p.supplements} onChange={(e) => set('supplements', e.target.value)} placeholder="p. ej. creatina 5 g/día" />
-          </Field>
-          <Field label="Disponibilidad para cardio">
-            <input value={p.cardioAvailability} onChange={(e) => set('cardioAvailability', e.target.value)} placeholder="p. ej. 2 caminatas de 30 min" />
-          </Field>
+        <div className="stack-sm">
+          <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>Suplementos utilizados</span>
+          <ChipSelect
+            options={SUPPLEMENTS.map((x) => ({ value: x, label: x }))}
+            selected={p.supplements}
+            onChange={(v) => set('supplements', v)}
+          />
+          <input
+            value={p.supplementsNotes}
+            onChange={(e) => set('supplementsNotes', e.target.value)}
+            placeholder="Dosis u otros suplementos (opcional), p. ej. creatina 5 g/día"
+          />
+        </div>
+        <div className="stack-sm">
+          <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>Cardio que sueles hacer</span>
+          <ChipSelect
+            options={CARDIO_MODALITIES.map((m) => ({ value: m.id, label: m.label }))}
+            selected={p.cardio.modalities}
+            onChange={(v) => set('cardio', { ...p.cardio, modalities: v })}
+          />
+          <div className="grid-tight">
+            <Field label="Días de cardio por semana">
+              <select value={p.cardio.daysPerWeek} onChange={(e) => set('cardio', { ...p.cardio, daysPerWeek: Number(e.target.value) })}>
+                {[0, 1, 2, 3, 4, 5, 6, 7].map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Minutos por sesión">
+              <NumberInput value={p.cardio.minutes || undefined} step={5} onChange={(v) => set('cardio', { ...p.cardio, minutes: v ?? 0 })} />
+            </Field>
+          </div>
+          <span className="hint" style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>
+            Se suma al gasto energético estimado en Nutrición.
+          </span>
         </div>
       </fieldset>
 
@@ -336,7 +407,7 @@ export function ProfileForm() {
       <fieldset className="card stack">
         <legend>Evaluación de seguridad</legend>
         <p className="muted" style={{ fontSize: '0.88rem' }}>
-          Preguntas basadas en el cuestionario PAR-Q+. Atlas no diagnostica: si alguna respuesta es afirmativa, te
+          Preguntas basadas en el cuestionario PAR-Q+. La app no diagnostica: si alguna respuesta es afirmativa, te
           recomendará la valoración profesional correspondiente.
         </p>
         <div className="stack-sm">
@@ -374,7 +445,7 @@ export function ProfileForm() {
       </fieldset>
 
       <div className="row">
-        <button className="btn primary" type="submit">
+        <button className="btn primary" type="submit" disabled={p.equipment.length === 0}>
           Guardar ficha
         </button>
         <button className="btn" type="button" onClick={() => navigate(-1)}>

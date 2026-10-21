@@ -1,3 +1,4 @@
+import { APP_NAME, TAGLINE } from '../brand'
 import { HashRouter, NavLink, Route, Routes, useNavigate } from 'react-router-dom'
 import { ActiveProfileProvider, useActiveProfile } from './activeProfile'
 import { IconBook, IconDumbbell, IconFood, IconHome, IconPlan, IconUsers } from './components/icons'
@@ -47,7 +48,7 @@ function Shell() {
     <div className="app">
       <nav className="sidebar" aria-label="Principal">
         <div className="brand">
-          At<span>las</span>
+          <img src="/brand/h-logo.png" alt={APP_NAME} />
         </div>
         {NAV.map((n) => (
           <NavLink key={n.to} to={n.to} end={n.to === '/'} className="nav-link">
@@ -59,11 +60,9 @@ function Shell() {
       <div className="main">
         <header className="topbar">
           <div className="brand">
-            At<span>las</span>
+            <img src="/brand/h-logo.png" alt={APP_NAME} />
           </div>
-          <span className="muted tagline" style={{ fontSize: '0.85rem' }}>
-            Hipertrofia guiada por evidencia
-          </span>
+          <span className="tagline">{TAGLINE}</span>
           <ProfileSwitcher />
         </header>
         <main className="content">

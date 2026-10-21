@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie'
 import { demoProfile } from '../domain/demo'
-import type { BodyLog, Plan, Profile, WorkoutLog } from '../domain/types'
+import type { BodyLog, Equipment, Plan, Profile, WorkoutLog } from '../domain/types'
 
 export const db = new Dexie('atlas') as Dexie & {
   profiles: EntityTable<Profile, 'id'>
@@ -15,6 +15,30 @@ db.version(1).stores({
   workouts: 'id, profileId, planId, startedAt',
   bodyLogs: 'id, profileId, date',
 })
+
+const LEGACY_EQUIPMENT: Record<string, Equipment[]> = {
+  full_gym: ['barbell', 'dumbbell', 'machine', 'cable', 'smith', 'bodyweight'],
+  basic_gym: ['barbell', 'dumbbell', 'cable', 'bodyweight'],
+  home: ['dumbbell', 'bodyweight'],
+}
+
+/** Convierte perfiles de versiones anteriores (también de respaldos importados) al formato actual. */
+function migrateProfile(p: Record<string, unknown>) {
+  if (typeof p.equipment === 'string') p.equipment = LEGACY_EQUIPMENT[p.equipment] ?? LEGACY_EQUIPMENT.full_gym
+  if (typeof p.supplements === 'string') {
+    p.supplementsNotes = p.supplements
+    p.supplements = []
+  }
+  if (!p.cardio) {
+    p.cardio = { modalities: [], daysPerWeek: 0, minutes: 0 }
+    delete p.cardioAvailability
+  }
+}
+
+// v2: equipamiento como lista, suplementos y cardio como opciones elegibles.
+db.version(2)
+  .stores({})
+  .upgrade((tx) => tx.table('profiles').toCollection().modify(migrateProfile))
 
 const SEEDED_KEY = 'atlas.seeded'
 
@@ -80,8 +104,9 @@ export async function exportData(): Promise<Backup> {
 /** Importa un respaldo. Los registros con el mismo id se reemplazan; el resto se conserva. */
 export async function importData(data: unknown): Promise<number> {
   const b = data as Partial<Backup>
-  if (b?.app !== 'atlas' || !Array.isArray(b.profiles)) throw new Error('El archivo no es un respaldo de Atlas.')
+  if (b?.app !== 'atlas' || !Array.isArray(b.profiles)) throw new Error('El archivo no es un respaldo válido de esta app.')
   await db.transaction('rw', [db.profiles, db.plans, db.workouts, db.bodyLogs], async () => {
+    for (const p of b.profiles!) migrateProfile(p as unknown as Record<string, unknown>)
     await db.profiles.bulkPut(b.profiles!)
     await db.plans.bulkPut(b.plans ?? [])
     await db.workouts.bulkPut(b.workouts ?? [])

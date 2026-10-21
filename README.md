@@ -1,6 +1,6 @@
-# Atlas
+# H · Entrenamiento guiado por evidencia
 
-Planificación guiada de hipertrofia basada en evidencia: evaluar → prescribir → guiar → registrar → comparar → ajustar.
+Nombre definitivo pendiente (en español; se cambia en `src/brand.ts`). Entrenamiento guiado por evidencia: evaluar → prescribir → guiar → registrar → comparar → ajustar.
 
 ## Uso
 
@@ -16,7 +16,7 @@ Los datos se guardan localmente en el navegador (IndexedDB). Usa **Personas → 
 ## Fase 1 (actual)
 
 - Fichas de personas con evaluación inicial y de seguridad (inspirada en PAR-Q+).
-- Generación de mesociclos de 6–8 semanas según días, experiencia, equipamiento, prioridades, recuperación y tiempo.
+- Generación de mesociclos de 6–8 semanas según días, experiencia, equipamiento (incluido TRX), prioridades, recuperación y tiempo.
 - Volumen por músculo con series directas (1) e indirectas (0.5).
 - Sesión guiada: calentamiento, carga recomendada, registro por serie (peso, reps, RIR, dolor, técnica), sugerencia de la siguiente serie y cronómetro de descanso.
 - Doble progresión y comparación por 1RM estimado ajustado por RIR.
