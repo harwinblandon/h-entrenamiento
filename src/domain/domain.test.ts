@@ -8,6 +8,7 @@ import { estimate1RM, recommendLoad, suggestNextSet } from './progression'
 import { createPin, verifyPin } from './pin'
 import { planChanges, planSnapshot } from './planChanges'
 import { emptySafety, evaluateSafety } from './safety'
+import { adherence, exerciseHistory, personalRecords, weeklyMuscleSets, weightSeries } from './progress'
 import { nextSession, weightStatus } from './schedule'
 import type { LoggedExercise, LoggedSet, Profile, WorkoutLog } from './types'
 import { MUSCLES } from './types'
@@ -236,6 +237,51 @@ describe('elección de la sesión del día', () => {
     expect(nextSession(plan, logs, now)!.pending).toEqual([0, 2, 3])
     const fullWeek = [0, 1, 2, 3, 4].map((i) => done(i, 1, `2026-10-1${i}T18:00:00Z`))
     expect(nextSession(plan, fullWeek, now)!.week).toBe(2)
+  })
+})
+
+describe('progreso', () => {
+  const plan = generatePlan(profile(), { id: 'plan', weeks: 6 })
+  const log = (id: string, finishedAt: string, sets: LoggedSet[], exerciseId = 'bench_press', week = 1): WorkoutLog => ({
+    id, profileId: 'p', planId: 'plan', week, sessionIndex: 0, startedAt: finishedAt, finishedAt,
+    entries: [{ exerciseId, muscle: 'chest', plannedSets: 3, repRange: [6, 10], rirTarget: [2, 2], restSec: 150, sets }],
+  })
+  const logs = [
+    log('a', '2026-10-01T18:00:00Z', [set(80, 8), set(80, 7)]),
+    log('b', '2026-10-08T18:00:00Z', [set(82.5, 8), set(90, 3, 2, { technique: 'deteriorated' })]),
+  ]
+
+  it('media móvil de 7 días del peso', () => {
+    const s = weightSeries([
+      { id: '1', profileId: 'p', date: '2026-10-01', weightKg: 75 },
+      { id: '2', profileId: 'p', date: '2026-10-03', weightKg: 76 },
+      { id: '3', profileId: 'p', date: '2026-10-09', weightKg: 77 },
+    ])
+    expect(s.map((p) => p.avg)).toEqual([75, 75.5, 76.5]) // el 9 incluye el pesaje del 3 (6 días antes)
+  })
+
+  it('historial por ejercicio usa la mejor serie con técnica estable', () => {
+    const h = exerciseHistory(logs, 'bench_press')
+    expect(h).toHaveLength(2)
+    expect(h[1].best.weight).toBe(82.5)
+    expect(h[1].e1rm).toBeGreaterThan(h[0].e1rm)
+  })
+
+  it('los récords ignoran series con técnica deteriorada', () => {
+    const pr = personalRecords(logs).find((r) => r.exerciseId === 'bench_press')!
+    expect(pr.heaviest!.set.weight).toBe(82.5)
+  })
+
+  it('series por músculo de la semana cuentan directas e indirectas', () => {
+    const w = weeklyMuscleSets(plan, logs, 1)
+    expect(w.chest.done).toBe(4)
+    expect(w.triceps.done).toBe(2)
+  })
+
+  it('adherencia por sesiones y series', () => {
+    const a = adherence(plan, logs)
+    expect(a.sessionsDone).toBe(2)
+    expect(a.setCompliancePct).toBe(67)
   })
 })
 

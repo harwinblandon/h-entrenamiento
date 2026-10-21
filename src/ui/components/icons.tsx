@@ -18,6 +18,9 @@ export const IconFood = () => (
 export const IconBook = () => (
   <svg {...base}><path d="M4 4.5A2.5 2.5 0 016.5 2H20v17H6.5A2.5 2.5 0 004 21.5z" /><path d="M4 21.5V4.5" /></svg>
 )
+export const IconChart = () => (
+  <svg {...base}><path d="M3 3v18h18" /><path d="M7 15l4-4 3 3 6-7" /></svg>
+)
 export const IconLock = () => (
   <svg {...base} width="15" height="15"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 018 0v4" /></svg>
 )

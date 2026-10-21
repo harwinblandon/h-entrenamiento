@@ -2,12 +2,13 @@ import { APP_NAME, TAGLINE } from '../brand'
 import { HashRouter, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { ActiveProfileProvider, useActiveProfile } from './activeProfile'
 import { LockScreen } from './components/LockScreen'
-import { IconBook, IconDumbbell, IconFood, IconHome, IconLock, IconPlan, IconUsers } from './components/icons'
+import { IconBook, IconChart, IconDumbbell, IconFood, IconHome, IconLock, IconPlan, IconUsers } from './components/icons'
 import { Dashboard } from './pages/Dashboard'
 import { EvidencePage } from './pages/EvidencePage'
 import { NutritionPage } from './pages/NutritionPage'
 import { People } from './pages/People'
 import { PlanPage } from './pages/PlanPage'
+import { ProgressPage } from './pages/ProgressPage'
 import { ProfileForm } from './pages/ProfileForm'
 import { WorkoutPage } from './pages/WorkoutPage'
 
@@ -15,6 +16,7 @@ const NAV = [
   { to: '/', label: 'Panel', icon: <IconHome />, mobile: true },
   { to: '/plan', label: 'Plan', icon: <IconPlan />, mobile: true },
   { to: '/entrenar', label: 'Entrenar', icon: <IconDumbbell />, mobile: true },
+  { to: '/progreso', label: 'Progreso', icon: <IconChart />, mobile: true },
   { to: '/nutricion', label: 'Nutrición', icon: <IconFood />, mobile: true },
   { to: '/personas', label: 'Personas', icon: <IconUsers />, mobile: true },
   { to: '/evidencia', label: 'Evidencia', icon: <IconBook />, mobile: false },
@@ -63,6 +65,7 @@ function GuardedRoutes() {
       <Route path="/personas/:id" element={<ProfileForm />} />
       <Route path="/plan" element={<PlanPage />} />
       <Route path="/entrenar" element={<WorkoutPage />} />
+      <Route path="/progreso" element={<ProgressPage />} />
       <Route path="/nutricion" element={<NutritionPage />} />
       <Route path="/evidencia" element={<EvidencePage />} />
     </Routes>

@@ -3,6 +3,8 @@
   --bg: #0b0b0c;
   --surface: rgb(21 21 23 / 0.92);
   --surface-solid: #151517;
+  --chart-primary: #e6dfcf;
+  --chart-secondary: #6f6e69;
   --surface-2: #202023;
   --text: #ecebe6;
   --muted: #9a9993;
@@ -252,4 +254,24 @@ td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; }
 .session-option:hover:not(:disabled) { border-color: var(--muted); }
 .session-option.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .session-option:disabled { opacity: 0.45; cursor: default; }
+/* Gráficas */
+.chart { position: relative; width: 100%; }
+.chart-axis { font-size: 11px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+.chart-end-label { font-size: 12px; font-weight: 600; fill: var(--text); }
+.chart-legend { display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.4rem; }
+.chart-legend span { display: inline-flex; align-items: center; gap: 0.4rem; }
+.chart-tooltip {
+  position: absolute; transform: translateX(-50%); pointer-events: none; z-index: 2;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 0.4rem 0.6rem;
+  font-size: 0.8rem; white-space: nowrap; box-shadow: 0 6px 18px rgb(0 0 0 / 0.35);
+}
+.chart-tooltip-date { color: var(--muted); margin-bottom: 0.15rem; }
+.chart-tooltip-row { display: flex; align-items: center; gap: 0.4rem; }
+.chart-tooltip-row strong { font-size: 0.9rem; }
+.chart-tooltip-row span { color: var(--muted); }
+.table-toggle summary { cursor: pointer; font-size: 0.82rem; color: var(--muted); margin-top: 0.4rem; }
+.target-bar { position: relative; height: 10px; border-radius: 0 4px 4px 0; background: var(--surface-2); min-width: 80px; }
+.target-bar > span { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--chart-primary); }
+.target-bar > i { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--text); border-radius: 1px; }
+.filters { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
 .empty { text-align: center; padding: 2.5rem 1rem; color: var(--muted); }
