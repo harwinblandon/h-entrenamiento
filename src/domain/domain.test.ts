@@ -111,6 +111,19 @@ describe('generación del plan', () => {
     }
   })
 
+  it('no parte un músculo en ejercicios de pocas series dentro de una sesión', () => {
+    for (const days of [3, 4, 5, 6]) {
+      // Sin límite de tiempo ajustado, para ver el reparto sin recortes.
+      const plan = generatePlan(profile({ daysPerWeek: days, sessionMinutes: 180 }))
+      for (const s of plan.sessions) {
+        for (const m of MUSCLES) {
+          const exs = s.exercises.filter((e) => e.muscle === m)
+          if (exs.length > 1) for (const e of exs) expect(e.sets).toBeGreaterThanOrEqual(3)
+        }
+      }
+    }
+  })
+
   it('reparte series sin dejar sesiones con menos de 2', () => {
     expect(distribute(10, [1, 1])).toEqual([5, 5])
     expect(distribute(3, [1, 1])).toEqual([3, 0])

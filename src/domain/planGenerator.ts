@@ -54,6 +54,7 @@ const COMPOUND_FIRST: Muscle[] = ['chest', 'back', 'quads', 'hamstrings', 'glute
 const INDIRECTLY_COVERED: Muscle[] = ['biceps', 'triceps', 'delts_rear', 'traps', 'glutes', 'abs']
 
 const MAX_SETS_PER_EXERCISE = 4
+const MAX_SETS_SINGLE_EXERCISE = 5
 const INDIRECT_FACTOR = 0.5
 
 interface SessionTemplate {
@@ -231,8 +232,13 @@ export function distribute(total: number, weights: number[]): number[] {
   return out
 }
 
+/**
+ * Divide las series de un músculo en una sesión entre ejercicios: hasta 5 series van en un solo
+ * ejercicio; desde 6 se reparten con al menos 3 series por ejercicio (dividir en bloques de 2 añade
+ * calentamientos y preparación sin aportar estímulo).
+ */
 function chunk(sets: number): number[] {
-  const n = Math.ceil(sets / MAX_SETS_PER_EXERCISE)
+  const n = sets <= MAX_SETS_SINGLE_EXERCISE ? 1 : Math.ceil(sets / MAX_SETS_PER_EXERCISE)
   return Array.from({ length: n }, (_, i) => Math.floor(sets / n) + (i < sets % n ? 1 : 0))
 }
 
@@ -325,8 +331,8 @@ export function generatePlan(profile: Profile, opts: GenerateOptions = {}): Plan
   const indirect = Object.fromEntries(MUSCLES.map((m) => [m, 0])) as Record<Muscle, number>
   const warnings: string[] = []
   const limitedByEquipment = new Set<Muscle>()
-  // Peso de cada sesión: cuantos más músculos trabaja, menos series recibe cada uno.
-  const sessionWeight = sessions.map((s) => 1 / Math.sqrt(s.template.muscles.filter((m) => targets[m] > 0).length || 1))
+  // Peso de cada sesión: cuantos más músculos trabaja, menos series recibe cada uno, para equilibrar la duración.
+  const sessionWeight = sessions.map((s) => 1 / (s.template.muscles.filter((m) => targets[m] > 0).length || 1))
 
   for (const m of ALLOCATION_ORDER) {
     const target = targets[m]
@@ -345,9 +351,9 @@ export function generatePlan(profile: Profile, opts: GenerateOptions = {}): Plan
         const ex = chooseExercise(m, slot, session, ctx)
         if (!ex) {
           // Sin otra variante disponible: las series se suman al ejercicio que ya trabaja ese músculo.
-          // Tope de MAX_SETS_PER_EXERCISE + 1: el resto se pierde por falta de variantes.
+          // Tope de MAX_SETS_SINGLE_EXERCISE: el resto se pierde por falta de variantes.
           const existing = session.exercises.find((e) => e.muscle === m)
-          const added = existing ? Math.min(sets, MAX_SETS_PER_EXERCISE + 1 - existing.sets) : 0
+          const added = existing ? Math.min(sets, MAX_SETS_SINGLE_EXERCISE - existing.sets) : 0
           if (existing && added > 0) {
             existing.sets += added
             for (const sm of getExercise(existing.exerciseId).secondary) indirect[sm] += added * INDIRECT_FACTOR
