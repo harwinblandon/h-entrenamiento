@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
-import { db, seedIfFirstRun } from '../db/db'
+import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
+import { db } from '../db/db'
 import { verifyPin } from '../domain/pin'
 import type { Profile } from '../domain/types'
 
@@ -83,10 +83,6 @@ export function ActiveProfileProvider({ children }: { children: ReactNode }) {
   const lock = useCallback((id: string) => saveUnlocked(readUnlocked().filter((x) => x !== id)), [saveUnlocked])
 
   const isLocked = useCallback((p: Profile | undefined) => !!p?.pin && !unlocked.includes(p.id), [unlocked])
-
-  useEffect(() => {
-    seedIfFirstRun().then((id) => id && setActiveId(id))
-  }, [setActiveId])
 
   const active = profiles?.find((p) => p.id === activeId) ?? profiles?.[0]
   return (

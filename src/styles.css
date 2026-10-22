@@ -292,6 +292,9 @@ td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; }
 .icon-btn { min-width: 34px; padding: 0.25rem 0.45rem; }
 .add-day { font: inherit; color: var(--muted); border-style: dashed; cursor: pointer; min-height: 120px; display: grid; place-items: center; }
 .add-day:hover { color: var(--text); border-color: var(--muted); }
+.welcome { max-width: 520px; margin: 10vh auto 0; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.9rem; }
+.welcome-logo { height: 120px; width: auto; margin-bottom: 0.5rem; }
+.welcome h1 { font-size: 1.9rem; }
 .link-btn { font: inherit; font-size: 0.78rem; color: var(--accent); background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .illustration { display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-start; }
 .illustration-figure { margin: 0; width: 100%; border: 1px solid var(--border); border-radius: 10px; padding: 0.75rem; background: var(--surface-2); }

@@ -1,5 +1,4 @@
 import Dexie, { type EntityTable } from 'dexie'
-import { demoProfile } from '../domain/demo'
 import type { BodyLog, Equipment, Plan, Profile, WorkoutLog } from '../domain/types'
 import { DIRTY, REMOTE, setDeleteTracking, setTombstoneHandler, SYNCED_TABLES, syncMiddleware, VERSION, type SyncedTable } from './syncMiddleware'
 
@@ -93,23 +92,6 @@ export async function clearLocalData() {
   } finally {
     setDeleteTracking(true)
   }
-}
-
-const SEEDED_KEY = 'atlas.seeded'
-
-/** Crea el perfil de demostración solo la primera vez que se abre la app. */
-export async function seedIfFirstRun(): Promise<string | undefined> {
-  try {
-    if (localStorage.getItem(SEEDED_KEY)) return undefined
-    localStorage.setItem(SEEDED_KEY, '1')
-  } catch {
-    return undefined
-  }
-  if ((await db.profiles.count()) > 0) return undefined
-  // Sin registro de peso: el de la ficha queda como referencia sin confirmar.
-  const p = demoProfile()
-  await db.profiles.add(p)
-  return p.id
 }
 
 export async function deleteProfile(id: string) {

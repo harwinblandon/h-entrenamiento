@@ -1,12 +1,12 @@
 import { emptySafety } from './safety'
 import type { Profile } from './types'
 
-/** Perfil de demostración. Solo son datos iniciales: puede editarse o eliminarse. */
+/** Perfil de ejemplo para las pruebas automáticas (la app ya no lo crea al abrirse). */
 export function demoProfile(now = new Date()): Profile {
   const ts = now.toISOString()
   return {
     id: crypto.randomUUID(),
-    name: 'H',
+    name: 'Ejemplo',
     sex: 'male',
     age: 33,
     heightCm: 170,

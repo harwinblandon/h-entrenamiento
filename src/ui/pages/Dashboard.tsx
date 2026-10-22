@@ -7,7 +7,9 @@ import { computeNutrition } from '../../domain/nutrition'
 import { evaluateSafety } from '../../domain/safety'
 import { nextSession, todayISO, WEIGHINS_TO_CONFIRM, weightStatus, weightTrend } from '../../domain/schedule'
 import type { BodyLog, Plan, Profile, WorkoutLog } from '../../domain/types'
+import { APP_NAME, LOGO_URL } from '../../brand'
 import { useActiveProfile } from '../activeProfile'
+import { useSync } from '../sync'
 import { BackupReminder } from '../components/BackupReminder'
 import { CycleComplete } from '../components/CycleComplete'
 import { PlanChangesAlert } from '../components/PlanChangesAlert'
@@ -162,18 +164,29 @@ function BodyLogCard({ profile, logs }: { profile: Profile; logs: BodyLog[] }) {
 
 export function Dashboard() {
   const { profiles, active } = useActiveProfile()
+  const { enabled: syncEnabled } = useSync()
   const plan = useLiveQuery(async () => (active ? ((await activePlan(active.id)) ?? null) : null), [active?.id])
   const workouts = useLiveQuery(() => (active ? db.workouts.where('profileId').equals(active.id).toArray() : []), [active?.id])
   const bodyLogs = useLiveQuery(() => (active ? db.bodyLogs.where('profileId').equals(active.id).toArray() : []), [active?.id])
 
   if (profiles && profiles.length === 0) {
     return (
-      <div className="card empty stack-sm" style={{ alignItems: 'center' }}>
-        <h1>Bienvenido</h1>
-        <p>Crea la ficha de la primera persona para generar su plan de hipertrofia.</p>
-        <Link className="btn primary" to="/personas/nueva">
-          Nueva persona
-        </Link>
+      <div className="welcome">
+        <img src={LOGO_URL} alt="" className="welcome-logo" />
+        <h1>Bienvenido a la aplicación de {APP_NAME}</h1>
+        <p className="muted">
+          Crea tu ficha con tu nombre, tus días y tu objetivo, y la app armará tu plan de entrenamiento.
+        </p>
+        <div className="row" style={{ justifyContent: 'center' }}>
+          <Link className="btn primary" to="/personas/nueva">
+            Crear mi ficha
+          </Link>
+          {syncEnabled && (
+            <Link className="btn" to="/personas#cuenta">
+              Ya tengo cuenta: entrar
+            </Link>
+          )}
+        </div>
       </div>
     )
   }
