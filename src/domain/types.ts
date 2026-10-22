@@ -46,6 +46,9 @@ export interface PinLock {
   salt: string
 }
 
+export type MuscleEmphasis = 'less' | 'none'
+export type RepPreference = 'low' | 'mixed' | 'high'
+
 export interface CardioPrefs {
   modalities: string[]
   daysPerWeek: number
@@ -83,6 +86,10 @@ export interface Profile {
   priorityMuscles: Muscle[]
   /** Énfasis de la división: equilibrada o con más frecuencia de tren inferior. */
   splitEmphasis?: 'balanced' | 'lower'
+  /** Ajuste por músculo elegido por la persona (además de los prioritarios, que equivalen a «más»). */
+  muscleEmphasis?: Partial<Record<Muscle, MuscleEmphasis>>
+  /** Preferencia de repeticiones: bajas, mixtas (por defecto) o altas. */
+  repPreference?: RepPreference
   /** Series semanales por músculo que la persona venía haciendo (aprox.). */
   previousWeeklySets?: number
   supplements: string[]
@@ -176,11 +183,15 @@ export interface Plan {
   queued?: boolean
   /** Ajustes aplicados desde el cierre del mesociclo anterior, en texto. */
   adjustments?: string[]
+  /** La persona editó el plan a mano (regenerarlo descarta esos cambios). */
+  custom?: boolean
 }
 
 export interface PlanSnapshot {
   daysPerWeek: number
   splitEmphasis?: 'balanced' | 'lower'
+  muscleEmphasis?: Partial<Record<Muscle, MuscleEmphasis>>
+  repPreference?: RepPreference
   sessionMinutes: number
   experience: Experience
   previousWeeklySets?: number

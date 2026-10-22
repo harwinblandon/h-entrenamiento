@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { demoProfile } from './demo'
-import { getExercise } from './exercises'
+import { getExercise, repRangeFor } from './exercises'
 import { MUSCLE_LABELS } from './labels'
 import { computeNutrition } from './nutrition'
 import { distribute, generatePlan, splitFor, weeklyTargets } from './planGenerator'
@@ -8,10 +8,11 @@ import { createDeloadPlan, createNextPlan, reviewMesocycle } from './mesocycle'
 import { estimate1RM, recommendLoad, reduceForReadiness, suggestNextSet } from './progression'
 import { createPin, verifyPin } from './pin'
 import { planChanges, planSnapshot } from './planChanges'
+import { reviewPlan } from './planReview'
 import { emptySafety, evaluateSafety } from './safety'
 import { adherence, exerciseHistory, personalRecords, weeklyMuscleSets, weightSeries } from './progress'
 import { nextSession, weightStatus } from './schedule'
-import type { LoggedExercise, LoggedSet, Profile, WorkoutLog } from './types'
+import type { LoggedExercise, LoggedSet, PlannedSession, Profile, WorkoutLog } from './types'
 import { MUSCLES } from './types'
 
 const profile = (over: Partial<Profile> = {}): Profile => ({ ...demoProfile(new Date('2026-01-01')), ...over })
@@ -383,6 +384,61 @@ describe('cierre de mesociclo', () => {
     expect(ids).not.toContain(rowEx)
     expect(ids).toContain(alt)
     expect(ids).toContain(bench)
+  })
+})
+
+describe('preferencias de la persona', () => {
+  it('«no entrenar» deja el músculo sin trabajo directo y «menos» reduce su objetivo', () => {
+    const p = profile({ priorityMuscles: [], muscleEmphasis: { biceps: 'none', calves: 'less' } })
+    const t = weeklyTargets(p)
+    expect(t.biceps).toBe(0)
+    expect(t.calves).toBe(Math.round(Math.round(12 * 0.8) * 0.6))
+    const plan = generatePlan(p)
+    expect(plan.weeklyVolume.biceps.direct).toBe(0)
+  })
+
+  it('la preferencia de repeticiones cambia los rangos', () => {
+    const bench = getExercise('bench_press')
+    expect(repRangeFor(bench, 'low')).toEqual([5, 8])
+    expect(repRangeFor(bench, 'high')).toEqual([8, 12])
+    expect(repRangeFor(getExercise('db_lateral_raise'), 'low')).toEqual([10, 15])
+    const plan = generatePlan(profile({ repPreference: 'high' }))
+    const squat = plan.sessions.flatMap((s) => s.exercises).find((e) => getExercise(e.exerciseId).category === 'compound')!
+    expect(squat.repRange[0]).toBeGreaterThanOrEqual(8)
+  })
+})
+
+describe('revisión del plan', () => {
+  const p = profile({ priorityMuscles: [], sessionMinutes: 90 })
+  const ex = (exerciseId: string, sets: number, repRange: [number, number] = [8, 12]) => ({
+    exerciseId, muscle: getExercise(exerciseId).primary[0], sets, repRange, restSec: 90,
+  })
+  const ids = (sessions: PlannedSession[]) => reviewPlan(sessions, p).map((f) => f.id)
+
+  it('el plan generado no tiene advertencias graves', () => {
+    expect(reviewPlan(generatePlan(p).sessions, p).filter((f) => f.level === 'warn')).toEqual([])
+  })
+
+  it('detecta grupos sin trabajo, exceso en una sesión y repeticiones extremas', () => {
+    const sessions = [{ name: 'Día 1', focus: '', estimatedMinutes: 0, exercises: [ex('bench_press', 12, [3, 4]), ex('cable_curl', 3, [25, 30])] }]
+    const found = ids(sessions)
+    expect(found).toContain('untouched')
+    expect(found).toContain('session-sets')
+    expect(found).toContain('reps-low')
+    expect(found).toContain('reps-high')
+  })
+
+  it('respeta los grupos que la persona decidió no entrenar', () => {
+    const q = profile({ priorityMuscles: [], muscleEmphasis: { quads: 'none', hamstrings: 'none', glutes: 'none' } })
+    const upperOnly = generatePlan(q).sessions
+    const findings = reviewPlan(upperOnly, q)
+    expect(findings.find((f) => f.id === 'untouched')?.text ?? '').not.toContain('Cuádriceps')
+    expect(findings.map((f) => f.id)).toContain('excluded')
+  })
+
+  it('avisa del desequilibrio entre empujes y tracciones', () => {
+    const sessions = [{ name: 'Día 1', focus: '', estimatedMinutes: 0, exercises: [ex('bench_press', 5), ex('incline_db_press', 5), ex('lat_pulldown', 2)] }]
+    expect(ids(sessions)).toContain('push-pull')
   })
 })
 

@@ -276,6 +276,22 @@ td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; }
 .filters { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
 .sync-badge { text-decoration: none; }
 @media (max-width: 760px) { .sync-badge { max-width: 92px; overflow: hidden; text-overflow: ellipsis; } }
+.emphasis-grid { display: grid; gap: 0.4rem 1rem; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.emphasis-row { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; font-size: 0.9rem; }
+.emphasis-row select { width: auto; min-width: 9.5rem; min-height: 36px; padding: 0.25rem 0.5rem; }
+.emphasis-row select.emphasis-more { border-color: var(--accent); }
+.emphasis-row select.emphasis-less { border-color: color-mix(in srgb, var(--warn) 60%, transparent); }
+.emphasis-row select.emphasis-none { border-color: var(--danger); color: var(--muted); }
+.findings { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.75rem; }
+.findings li { display: flex; gap: 0.6rem; align-items: flex-start; }
+.findings li > .badge { min-width: 4.2rem; text-align: center; margin-top: 2px; }
+.edit-row { border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem; display: flex; flex-direction: column; gap: 0.5rem; background: var(--surface-solid); }
+.edit-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.4rem; }
+.edit-fields label { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.72rem; color: var(--muted); }
+.edit-fields input, .edit-fields select { min-height: 34px; padding: 0.25rem 0.4rem; font-size: 0.9rem; }
+.icon-btn { min-width: 34px; padding: 0.25rem 0.45rem; }
+.add-day { font: inherit; color: var(--muted); border-style: dashed; cursor: pointer; min-height: 120px; display: grid; place-items: center; }
+.add-day:hover { color: var(--text); border-color: var(--muted); }
 .link-btn { font: inherit; font-size: 0.78rem; color: var(--accent); background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .illustration { display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-start; }
 .illustration-figure { margin: 0; width: 100%; border: 1px solid var(--border); border-radius: 10px; padding: 0.75rem; background: var(--surface-2); }

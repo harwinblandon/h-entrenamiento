@@ -8,6 +8,8 @@ export function planSnapshot(p: Profile): PlanSnapshot {
   return {
     daysPerWeek: p.daysPerWeek,
     splitEmphasis: p.splitEmphasis ?? 'balanced',
+    muscleEmphasis: Object.fromEntries(Object.entries(p.muscleEmphasis ?? {}).sort()),
+    repPreference: p.repPreference ?? 'mixed',
     sessionMinutes: p.sessionMinutes,
     experience: p.experience,
     previousWeeklySets: p.previousWeeklySets,
@@ -43,6 +45,14 @@ export function planChanges(snapshot: PlanSnapshot | undefined, profile: Profile
   if ((snapshot.splitEmphasis ?? 'balanced') !== now.splitEmphasis) {
     const label = (e?: string) => (e === 'lower' ? 'énfasis en tren inferior' : 'equilibrada')
     out.push(`Distribución: ${label(snapshot.splitEmphasis)} → ${label(now.splitEmphasis)}`)
+  }
+  if ((snapshot.repPreference ?? 'mixed') !== now.repPreference) {
+    const rl = { low: 'bajas', mixed: 'mixtas', high: 'altas' }
+    out.push(`Repeticiones: ${rl[snapshot.repPreference ?? 'mixed']} → ${rl[now.repPreference ?? 'mixed']}`)
+  }
+  const emphasisKey = (e?: Record<string, string>) => JSON.stringify(Object.entries(e ?? {}).sort())
+  if (emphasisKey(snapshot.muscleEmphasis) !== emphasisKey(now.muscleEmphasis)) {
+    out.push('Ajustes por músculo («menos» o «no entrenar»)')
   }
   if (snapshot.sessionMinutes !== now.sessionMinutes) {
     out.push(`Duración máxima: ${snapshot.sessionMinutes} → ${now.sessionMinutes} min`)

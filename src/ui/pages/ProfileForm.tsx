@@ -340,6 +340,16 @@ export function ProfileForm() {
             <option value="lower">Énfasis en tren inferior (pierna y glúteo)</option>
           </select>
         </Field>
+        <Field
+          label="Repeticiones"
+          hint="Todas generan hipertrofia si llegas cerca del fallo; elige la que disfrutes y toleres mejor"
+        >
+          <select value={p.repPreference ?? 'mixed'} onChange={(e) => set('repPreference', e.target.value as Profile['repPreference'])}>
+            <option value="low">Bajas (compuestos 5–8, aislamientos 8–12)</option>
+            <option value="mixed">Mixtas (compuestos 6–10, aislamientos 10–15) — recomendado</option>
+            <option value="high">Altas (compuestos 8–12, aislamientos 15–20)</option>
+          </select>
+        </Field>
         <Field label="Objetivo">
           <select value={p.goal} onChange={(e) => set('goal', e.target.value as Profile['goal'])}>
             {Object.entries(GOAL_LABELS).map(([k, v]) => (
@@ -348,19 +358,39 @@ export function ProfileForm() {
           </select>
         </Field>
         <div className="stack-sm">
-          <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>Músculos prioritarios</span>
-          <div className="chips">
+          <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>Trabajo por músculo</span>
+          <span className="hint" style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>
+            «Más» lo prioriza (+series y antes en la sesión); «Menos» baja su volumen ~40 %; «No entrenar» lo deja sin
+            trabajo directo. Tú decides: la app te avisará si algo se aleja de lo que recomienda la evidencia.
+          </span>
+          <div className="emphasis-grid">
             {MUSCLES.map((m) => {
-              const on = p.priorityMuscles.includes(m)
+              const value = p.priorityMuscles.includes(m) ? 'more' : (p.muscleEmphasis?.[m] ?? 'normal')
               return (
-                <button
-                  type="button"
-                  key={m}
-                  className={`chip ${on ? 'on' : ''}`}
-                  onClick={() => set('priorityMuscles', on ? p.priorityMuscles.filter((x) => x !== m) : [...p.priorityMuscles, m])}
-                >
-                  {MUSCLE_LABELS[m]}
-                </button>
+                <label className="emphasis-row" key={m}>
+                  <span>{MUSCLE_LABELS[m]}</span>
+                  <select
+                    value={value}
+                    className={`emphasis-${value}`}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      const priorities = p.priorityMuscles.filter((x) => x !== m)
+                      const emphasis = { ...(p.muscleEmphasis ?? {}) }
+                      delete emphasis[m]
+                      if (v === 'less' || v === 'none') emphasis[m] = v
+                      setP((prev) => ({
+                        ...prev,
+                        priorityMuscles: v === 'more' ? [...priorities, m] : priorities,
+                        muscleEmphasis: emphasis,
+                      }))
+                    }}
+                  >
+                    <option value="more">Más (prioridad)</option>
+                    <option value="normal">Normal</option>
+                    <option value="less">Menos</option>
+                    <option value="none">No entrenar</option>
+                  </select>
+                </label>
               )
             })}
           </div>

@@ -232,6 +232,12 @@ export function weeklyTargets(profile: Profile): Record<Muscle, number> {
     targets[m] = Math.round(muscleBase * muscleFactor(m, priority)) + (priority ? bonus : 0)
     if (muscleFactor(m, priority) === 0) targets[m] = 0
   }
+  // Ajuste elegido por la persona: «menos» ≈ 60 % del objetivo; «no entrenar» = sin trabajo directo.
+  for (const [m, e] of Object.entries(profile.muscleEmphasis ?? {}) as [Muscle, string][]) {
+    if (profile.priorityMuscles.includes(m)) continue
+    if (e === 'none') targets[m] = 0
+    else if (e === 'less') targets[m] = targets[m] > 0 ? Math.max(2, Math.round(targets[m] * 0.6)) : 0
+  }
   // En embarazo y posparto el trabajo directo de abdomen lo define el profesional (suelo pélvico, diástasis).
   if (isPregnancyOrPostpartum(profile)) targets.abs = 0
   return targets
@@ -297,6 +303,8 @@ function chooseExercise(m: Muscle, slot: number, session: SessionState, ctx: Con
     // Quien empieza suele necesitar asistencia en las dominadas.
     if (profile.experience === 'beginner' && e.id === 'pull_up') score -= 8
     if (pregnancy && e.fatigue === 3) score -= 20
+    // Evitar que un ejercicio para otro músculo trabaje de lleno uno que la persona decidió no entrenar.
+    if (e.primary.some((x) => x !== m && profile.muscleEmphasis?.[x] === 'none')) score -= 30
     score -= index * 0.01 // desempate estable según el orden de la biblioteca
 
     if (score > bestScore) {
@@ -488,7 +496,7 @@ export function generatePlan(baseProfile: Profile, opts: GenerateOptions = {}): 
           if (added < sets) limitedByEquipment.add(m)
           return
         }
-        session.exercises.push({ exerciseId: ex.id, muscle: m, sets, repRange: repRangeFor(ex), restSec: restFor(ex, profile.experience) })
+        session.exercises.push({ exerciseId: ex.id, muscle: m, sets, repRange: repRangeFor(ex, profile.repPreference), restSec: restFor(ex, profile.experience) })
         if (!ctx.usedForMuscle.has(m)) ctx.usedForMuscle.set(m, new Set())
         ctx.usedForMuscle.get(m)!.add(ex.id)
         for (const sm of ex.secondary) indirect[sm] += sets * INDIRECT_FACTOR
@@ -596,7 +604,13 @@ function explainPlan(profile: Profile, split: Split): Explanation[] {
     },
     {
       title: 'Rangos de repeticiones',
-      text: 'Compuestos 6–10, máquinas 8–12, aislamientos 10–15 y deltoides o pantorrillas hasta 20. La hipertrofia es similar en un amplio rango si las series se acercan al fallo.',
+      text:
+        (profile.repPreference === 'low'
+          ? 'Preferiste repeticiones bajas: compuestos 5–8, máquinas 6–10 y aislamientos 8–12. '
+          : profile.repPreference === 'high'
+            ? 'Preferiste repeticiones altas: compuestos 8–12, máquinas 12–15 y aislamientos 15–20. '
+            : 'Compuestos 6–10, máquinas 8–12, aislamientos 10–15 y deltoides o pantorrillas hasta 20. ') +
+        'La hipertrofia es similar en un amplio rango si las series se acercan al fallo.',
       confidence: 'moderada',
       sourceIds: ['schoenfeld2021loading'],
     },

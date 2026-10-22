@@ -1,4 +1,4 @@
-import type { Equipment, Exercise, ExerciseCategory, Experience } from './types'
+import type { Equipment, Exercise, ExerciseCategory, Experience, RepPreference } from './types'
 
 const TRX_NOTE = 'Sin carga externa: la dificultad se ajusta con el ángulo del cuerpo'
 
@@ -574,8 +574,19 @@ const DEFAULT_REP_RANGE: Record<ExerciseCategory, [number, number]> = {
   isolation: [10, 15],
 }
 
-export function repRangeFor(ex: Exercise): [number, number] {
-  return ex.repRange ?? DEFAULT_REP_RANGE[ex.category]
+const LOW_REPS: Record<ExerciseCategory, [number, number]> = { compound: [5, 8], machine: [6, 10], isolation: [8, 12] }
+const HIGH_REPS: Record<ExerciseCategory, [number, number]> = { compound: [8, 12], machine: [12, 15], isolation: [15, 20] }
+
+/**
+ * Rango de repeticiones según el ejercicio y la preferencia de la persona. Los ejercicios que
+ * ya trabajan en rangos altos (deltoides, pantorrillas) y los que no tienen carga externa se ajustan menos.
+ */
+export function repRangeFor(ex: Exercise, pref: RepPreference = 'mixed'): [number, number] {
+  const base = ex.repRange ?? DEFAULT_REP_RANGE[ex.category]
+  if (pref === 'mixed' || ex.increment === 0) return base
+  const highByNature = base[0] >= 12
+  if (pref === 'low') return highByNature ? [10, 15] : LOW_REPS[ex.category]
+  return highByNature ? [15, 25] : HIGH_REPS[ex.category]
 }
 
 const DEFAULT_REST: Record<ExerciseCategory, number> = {
