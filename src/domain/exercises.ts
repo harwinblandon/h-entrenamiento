@@ -261,7 +261,7 @@ export const EXERCISES: Exercise[] = [
   },
   {
     id: 'goblet_squat', name: 'Sentadilla goblet', primary: ['quads'], secondary: ['glutes', 'adductors'],
-    category: 'compound', pattern: 'squat', equipment: 'dumbbell', increment: 2, failureSafe: true, fatigue: 1,
+    category: 'compound', pattern: 'squat', equipment: 'dumbbell', increment: 2, failureSafe: true, fatigue: 1, loadLimited: true,
     repRange: [10, 15],
     cues: ['Mancuerna pegada al pecho', 'Codos entre las rodillas abajo'],
   },
@@ -274,14 +274,20 @@ export const EXERCISES: Exercise[] = [
 
   // Isquiotibiales y glúteos
   {
-    id: 'rdl', name: 'Peso muerto rumano', primary: ['hamstrings'], secondary: ['glutes', 'adductors'],
+    id: 'rdl', name: 'Peso muerto rumano con barra', primary: ['hamstrings'], secondary: ['glutes', 'adductors'],
     category: 'compound', pattern: 'hinge', equipment: 'barbell', increment: 2.5, failureSafe: false, fatigue: 3, lengthened: true,
     repRange: [6, 10],
     cues: ['Cadera atrás, rodillas semiflexionadas', 'Barra pegada a las piernas', 'Bajar hasta el estiramiento sin redondear'],
   },
   {
+    id: 'deadlift', name: 'Peso muerto convencional con barra', primary: ['glutes', 'hamstrings'], secondary: ['quads', 'adductors', 'back', 'traps'],
+    category: 'compound', pattern: 'hinge', equipment: 'barbell', increment: 2.5, failureSafe: false, fatigue: 3,
+    repRange: [5, 8],
+    cues: ['Barra sobre la mitad del pie y espinillas cerca', 'Espalda neutra y bracing antes de despegar', 'Empujar el suelo y extender cadera y rodillas a la vez'],
+  },
+  {
     id: 'db_rdl', name: 'Peso muerto rumano con mancuernas', primary: ['hamstrings'], secondary: ['glutes', 'adductors'],
-    category: 'compound', pattern: 'hinge', equipment: 'dumbbell', increment: 2, failureSafe: false, fatigue: 2, lengthened: true,
+    category: 'compound', pattern: 'hinge', equipment: 'dumbbell', increment: 2, failureSafe: false, fatigue: 2, lengthened: true, loadLimited: true,
     repRange: [8, 12], loadNote: 'kg por mancuerna',
     cues: ['Cadera atrás', 'Espalda neutra'],
   },
@@ -425,7 +431,7 @@ export const EXERCISES: Exercise[] = [
   },
   {
     id: 'single_leg_rdl', name: 'Peso muerto rumano a una pierna con mancuerna', primary: ['hamstrings'], secondary: ['glutes', 'adductors'],
-    category: 'compound', pattern: 'hinge', equipment: 'dumbbell', increment: 2, failureSafe: false, fatigue: 1, lengthened: true,
+    category: 'compound', pattern: 'hinge', equipment: 'dumbbell', increment: 2, failureSafe: false, fatigue: 1, lengthened: true, loadLimited: true,
     repRange: [8, 12], loadNote: 'kg de la mancuerna',
     cues: ['Cadera nivelada', 'Bajar hasta sentir estiramiento en el femoral de apoyo'],
   },

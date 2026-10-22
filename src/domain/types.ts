@@ -118,6 +118,8 @@ export interface Exercise {
   lengthened?: boolean
   /** Flexión de tronco (crunch, elevaciones de piernas): se evita en embarazo y posparto. */
   trunkFlexion?: boolean
+  /** Con mancuernas la carga se queda corta para quien ya es fuerte (se evita en intermedios y avanzados con barra). */
+  loadLimited?: boolean
   /** Máquina asistida: más kilos = más fácil; progresa reduciendo la asistencia. */
   assisted?: boolean
   /** Cómo progresar cuando no hay carga medible. */

@@ -285,7 +285,10 @@ function chooseExercise(m: Muscle, slot: number, session: SessionState, ctx: Con
     if (compoundFirst && slot === 0) score += { compound: 10, machine: 6, isolation: 0 }[e.category]
     else if (compoundFirst) score += { compound: 2, machine: 8, isolation: 6 }[e.category]
     else score += { compound: 0, machine: 5, isolation: 10 }[e.category]
-    if (heavyInSession && e.fatigue === 3) score -= 15
+    if (heavyInSession && e.fatigue === 3) score -= 8
+    if (e.loadLimited && profile.experience !== 'beginner' && profile.equipment.includes('barbell')) {
+      score -= profile.experience === 'advanced' ? 18 : 8
+    }
     if (profile.experience === 'beginner' && e.category === 'machine') score += 3
     if (hasLoaded && e.increment === 0) score -= 25
     // Preferir ejercicios que trabajan el músculo estirado y los específicos de ese músculo.

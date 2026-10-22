@@ -9,6 +9,7 @@ import { evaluateSafety } from '../../domain/safety'
 import type { MuscleVolume, Plan, Profile } from '../../domain/types'
 import { MUSCLES } from '../../domain/types'
 import { useActiveProfile } from '../activeProfile'
+import { ExerciseIllustration } from '../components/ExerciseIllustration'
 import { Explanations } from '../components/Explanations'
 import { PlanChangesAlert, regeneratePlan } from '../components/PlanChangesAlert'
 
@@ -198,6 +199,7 @@ function PlanView({ plan, profile }: { plan: Plan; profile: Profile }) {
                             {MUSCLE_LABELS[pe.muscle]}
                             {profile.priorityMuscles.includes(pe.muscle) && ' · prioridad'}
                           </small>
+                          <ExerciseIllustration key={ex.id} exerciseId={ex.id} exerciseName={ex.name} compact />
                         </td>
                         <td className="r" style={{ whiteSpace: 'nowrap' }}>
                           {pe.sets} × {pe.repRange[0]}–{pe.repRange[1]}

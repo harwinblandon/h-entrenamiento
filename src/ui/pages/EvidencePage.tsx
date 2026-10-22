@@ -41,6 +41,22 @@ export function EvidencePage() {
           <p className="sources">{s.citation}</p>
         </article>
       ))}
+      <article className="card stack-sm" id="creditos">
+        <h2 style={{ margin: 0 }}>Créditos de las ilustraciones</h2>
+        <p style={{ fontSize: '0.9rem', margin: 0 }}>
+          Las ilustraciones de los ejercicios provienen de{' '}
+          <a href="https://github.com/everkinetic/data" target="_blank" rel="noreferrer">
+            Everkinetic
+          </a>{' '}
+          (proyecto basado en everkinetic.com, creado por Greg Priday) y se usan bajo la licencia{' '}
+          <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.es" target="_blank" rel="noreferrer">
+            CC BY-SA 4.0
+          </a>
+          . Se adaptaron al tema oscuro (trazo claro sobre fondo transparente); las adaptaciones se comparten bajo la misma
+          licencia. Cuando una ilustración muestra un ejercicio de patrón parecido y no exactamente el mismo, se indica como
+          «patrón similar».
+        </p>
+      </article>
     </div>
   )
 }

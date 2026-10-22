@@ -20,6 +20,7 @@ import { nextSession, type NextSession } from '../../domain/schedule'
 import type { LoggedExercise, LoggedSet, Plan, Profile, Technique, WorkoutLog } from '../../domain/types'
 import { useActiveProfile } from '../activeProfile'
 import { CycleComplete } from '../components/CycleComplete'
+import { ExerciseIllustration } from '../components/ExerciseIllustration'
 import { RestTimer, type TimerState } from '../components/RestTimer'
 
 const fmtKg = (n: number) => `${Number(n.toFixed(2))} kg`
@@ -197,6 +198,7 @@ function ExerciseCard({
             <li key={c}>{c}</li>
           ))}
         </ul>
+        <ExerciseIllustration key={ex.id} exerciseId={ex.id} exerciseName={ex.name} />
 
         {entry.substitutedFrom && <small>Sustituye a: {getExercise(entry.substitutedFrom).name}</small>}
         {entry.sets.length === 0 && subs.length > 0 && (
