@@ -7,6 +7,7 @@ import { EXPERIENCE_LABELS, GOAL_LABELS } from '../../domain/labels'
 import { evaluateSafety } from '../../domain/safety'
 import { useActiveProfile } from '../activeProfile'
 import { applyFont, FONT_OPTIONS, storedFont } from '../appearance'
+import { AccountCard } from '../components/AccountCard'
 
 export function People() {
   const { profiles, active, setActiveId, isLocked } = useActiveProfile()
@@ -111,6 +112,8 @@ export function People() {
           )
         })}
       </div>
+
+      <AccountCard />
 
       <div className="card stack-sm">
         <h2>Apariencia</h2>

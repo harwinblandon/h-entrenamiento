@@ -1,6 +1,7 @@
 import { APP_NAME, LOGO_URL, TAGLINE } from '../brand'
-import { HashRouter, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { HashRouter, Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { ActiveProfileProvider, useActiveProfile } from './activeProfile'
+import { SYNC_LABELS, SyncProvider, useSync } from './sync'
 import { LockScreen } from './components/LockScreen'
 import { IconBook, IconChart, IconDumbbell, IconFood, IconHome, IconLock, IconPlan, IconUsers } from './components/icons'
 import { Dashboard } from './pages/Dashboard'
@@ -74,6 +75,24 @@ function GuardedRoutes() {
   )
 }
 
+function SyncIndicator() {
+  const { enabled, status } = useSync()
+  if (!enabled) return null
+  if (status.state === 'signed-out') {
+    return (
+      <Link className="btn small" to="/personas#cuenta">
+        Entrar
+      </Link>
+    )
+  }
+  const tone = { synced: 'accent', syncing: '', offline: 'warn', error: 'danger' }[status.state]
+  return (
+    <Link to="/personas#cuenta" className={`badge sync-badge ${tone}`} title={status.email}>
+      {SYNC_LABELS[status.state]}
+    </Link>
+  )
+}
+
 function LockButton() {
   const { active, isLocked, lock } = useActiveProfile()
   if (!active?.pin || isLocked(active)) return null
@@ -105,6 +124,7 @@ function Shell() {
           </div>
           <span className="tagline">{TAGLINE}</span>
           <div className="row" style={{ flexWrap: 'nowrap' }}>
+            <SyncIndicator />
             <LockButton />
             <ProfileSwitcher />
           </div>
@@ -128,9 +148,11 @@ function Shell() {
 export function App() {
   return (
     <HashRouter>
-      <ActiveProfileProvider>
-        <Shell />
-      </ActiveProfileProvider>
+      <SyncProvider>
+        <ActiveProfileProvider>
+          <Shell />
+        </ActiveProfileProvider>
+      </SyncProvider>
     </HashRouter>
   )
 }

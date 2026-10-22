@@ -1,13 +1,32 @@
 import Dexie, { type EntityTable } from 'dexie'
 import { demoProfile } from '../domain/demo'
 import type { BodyLog, Equipment, Plan, Profile, WorkoutLog } from '../domain/types'
+import { DIRTY, REMOTE, setDeleteTracking, setTombstoneHandler, SYNCED_TABLES, syncMiddleware, VERSION, type SyncedTable } from './syncMiddleware'
+
+/** Marca de borrado local pendiente de subir a la nube. */
+export interface Tombstone {
+  key: string
+  table: SyncedTable
+  id: string
+  _v: number
+}
 
 export const db = new Dexie('atlas') as Dexie & {
   profiles: EntityTable<Profile, 'id'>
   plans: EntityTable<Plan, 'id'>
   workouts: EntityTable<WorkoutLog, 'id'>
   bodyLogs: EntityTable<BodyLog, 'id'>
+  tombstones: EntityTable<Tombstone, 'key'>
 }
+
+// Sella versión y «pendiente de subir» en cada escritura de las tablas sincronizadas.
+db.use(syncMiddleware)
+setTombstoneHandler((table, ids) => {
+  const now = Date.now()
+  void Dexie.ignoreTransaction(() =>
+    db.tombstones.bulkPut(ids.map((id) => ({ key: `${table}/${id}`, table, id, _v: now }))),
+  )
+})
 
 db.version(1).stores({
   profiles: 'id, name',
@@ -39,6 +58,42 @@ function migrateProfile(p: Record<string, unknown>) {
 db.version(2)
   .stores({})
   .upgrade((tx) => tx.table('profiles').toCollection().modify(migrateProfile))
+
+// v3: sincronización en la nube. Los registros existentes quedan pendientes de subir con versión
+// mínima, para que, si la nube ya tuviera ese registro, gane la versión de la nube.
+db.version(3)
+  .stores({
+    profiles: 'id, name, _dirty',
+    plans: 'id, profileId, active, _dirty',
+    workouts: 'id, profileId, planId, startedAt, _dirty',
+    bodyLogs: 'id, profileId, date, _dirty',
+    tombstones: 'key',
+  })
+  .upgrade(async (tx) => {
+    for (const t of SYNCED_TABLES) {
+      await tx
+        .table(t)
+        .toCollection()
+        .modify((v: Record<string, unknown>) => {
+          v[VERSION] = 1
+          v[DIRTY] = 1
+          v[REMOTE] = true
+        })
+    }
+  })
+
+/** Borra todos los datos locales (al cerrar sesión: siguen en la nube). */
+export async function clearLocalData() {
+  setDeleteTracking(false)
+  try {
+    await db.transaction('rw', [db.profiles, db.plans, db.workouts, db.bodyLogs, db.tombstones], async () => {
+      for (const t of SYNCED_TABLES) await db.table(t).clear()
+      await db.tombstones.clear()
+    })
+  } finally {
+    setDeleteTracking(true)
+  }
+}
 
 const SEEDED_KEY = 'atlas.seeded'
 
