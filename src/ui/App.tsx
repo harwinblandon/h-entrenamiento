@@ -3,7 +3,8 @@ import { HashRouter, Link, NavLink, Route, Routes, useLocation, useNavigate } fr
 import { ActiveProfileProvider, useActiveProfile } from './activeProfile'
 import { SYNC_LABELS, SyncProvider, useSync } from './sync'
 import { LockScreen } from './components/LockScreen'
-import { IconBook, IconChart, IconDumbbell, IconFood, IconHome, IconLock, IconPlan, IconUsers } from './components/icons'
+import { IconBook, IconChart, IconDumbbell, IconFood, IconHome, IconLock, IconPlan, IconShield, IconUsers } from './components/icons'
+import { AdminPage } from './pages/AdminPage'
 import { Dashboard } from './pages/Dashboard'
 import { EvidencePage } from './pages/EvidencePage'
 import { MesocyclePage } from './pages/MesocyclePage'
@@ -49,7 +50,7 @@ function ProfileSwitcher() {
 }
 
 /** Rutas abiertas aunque la persona activa esté bloqueada. */
-const OPEN_PATHS = ['/personas', '/personas/nueva', '/evidencia']
+const OPEN_PATHS = ['/personas', '/personas/nueva', '/evidencia', '/admin']
 
 function GuardedRoutes() {
   const { pathname } = useLocation()
@@ -71,7 +72,19 @@ function GuardedRoutes() {
       <Route path="/progreso" element={<ProgressPage />} />
       <Route path="/nutricion" element={<NutritionPage />} />
       <Route path="/evidencia" element={<EvidencePage />} />
+      <Route path="/admin" element={<AdminPage />} />
     </Routes>
+  )
+}
+
+function AdminNavLink() {
+  const { status } = useSync()
+  if (!status.isAdmin) return null
+  return (
+    <NavLink to="/admin" className="nav-link">
+      <IconShield />
+      Administración
+    </NavLink>
   )
 }
 
@@ -116,6 +129,7 @@ function Shell() {
             {n.label}
           </NavLink>
         ))}
+        <AdminNavLink />
       </nav>
       <div className="main">
         <header className="topbar">

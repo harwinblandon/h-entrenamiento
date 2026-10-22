@@ -21,6 +21,9 @@ export const IconBook = () => (
 export const IconChart = () => (
   <svg {...base}><path d="M3 3v18h18" /><path d="M7 15l4-4 3 3 6-7" /></svg>
 )
+export const IconShield = () => (
+  <svg {...base}><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z" /></svg>
+)
 export const IconLock = () => (
   <svg {...base} width="15" height="15"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 018 0v4" /></svg>
 )

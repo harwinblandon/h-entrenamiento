@@ -4,6 +4,7 @@ import {
   deleteUser,
   getAuth,
   onAuthStateChanged,
+  sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
@@ -12,11 +13,16 @@ import {
 } from 'firebase/auth'
 import {
   collection,
+  deleteDoc,
   doc,
   getDocs,
   getFirestore,
+  limit,
+  query,
   onSnapshot,
   serverTimestamp,
+  setDoc,
+  Timestamp,
   writeBatch,
   type Firestore,
   type QueryDocumentSnapshot,
@@ -30,6 +36,10 @@ export type SyncState = 'signed-out' | 'syncing' | 'synced' | 'offline' | 'error
 export interface SyncStatus {
   state: SyncState
   email?: string
+  /** El correo de la cuenta está verificado (necesario para el panel de administración). */
+  emailVerified?: boolean
+  /** Las reglas de Firestore permiten a esta cuenta leer la lista de cuentas. */
+  isAdmin?: boolean
   /** Cambios locales pendientes de subir. */
   pending: number
   lastSyncedAt?: number
@@ -79,6 +89,99 @@ export function subscribeStatus(listener: (s: SyncStatus) => void): () => void {
   listeners.add(listener)
   listener(status)
   return () => listeners.delete(listener)
+}
+
+/** Resumen de uso de una cuenta, visible solo para el administrador (colección members/{uid}). */
+export interface Member {
+  uid: string
+  email: string
+  createdAt?: string
+  lastSeenAt?: number
+  profiles: number
+  workouts: number
+  lastWorkoutAt?: string
+  bodyLogs: number
+}
+
+const MEMBER_THROTTLE_MS = 2 * 60_000
+let lastMemberWrite = 0
+let memberTimer: ReturnType<typeof setTimeout> | undefined
+
+/** Actualiza el resumen de uso de la cuenta (como mucho cada 2 minutos). */
+function scheduleMemberUpdate(force = false) {
+  if (!user) return
+  const wait = force ? 0 : Math.max(0, lastMemberWrite + MEMBER_THROTTLE_MS - Date.now())
+  if (memberTimer) clearTimeout(memberTimer)
+  memberTimer = setTimeout(() => void writeMember(), wait)
+}
+
+async function writeMember() {
+  if (!user) return
+  lastMemberWrite = Date.now()
+  const finished = (await db.workouts.toArray()).filter((w) => w.finishedAt)
+  const lastWorkoutAt = finished.map((w) => w.finishedAt!).sort().pop() ?? null
+  try {
+    await setDoc(
+      doc(fs, 'members', user.uid),
+      {
+        email: user.email ?? '',
+        createdAt: user.metadata.creationTime ? new Date(user.metadata.creationTime).toISOString() : null,
+        lastSeenAt: serverTimestamp(),
+        profiles: await db.profiles.count(),
+        workouts: finished.length,
+        lastWorkoutAt,
+        bodyLogs: await db.bodyLogs.count(),
+      },
+      { merge: true },
+    )
+  } catch (e) {
+    // Sin permiso (reglas sin actualizar) o sin conexión: no afecta a la sincronización de datos.
+    console.warn('No se pudo actualizar el resumen de la cuenta', e)
+  }
+}
+
+/**
+ * Comprueba si la cuenta es administradora intentando leer la lista de cuentas: solo las reglas de
+ * Firestore saben quién lo es, así que el correo del administrador no aparece en el código de la app.
+ */
+async function checkAdmin() {
+  if (!user?.emailVerified) {
+    setStatus({ isAdmin: false })
+    return
+  }
+  try {
+    await getDocs(query(collection(fs, 'members'), limit(1)))
+    setStatus({ isAdmin: true })
+  } catch {
+    setStatus({ isAdmin: false })
+  }
+}
+
+/** Lista de cuentas registradas (solo funciona para el administrador, según las reglas). */
+export async function listMembers(): Promise<Member[]> {
+  try {
+    const snap = await getDocs(collection(fs, 'members'))
+    return snap.docs.map((d) => {
+      const m = d.data()
+      return {
+        uid: d.id,
+        email: String(m.email ?? ''),
+        createdAt: m.createdAt ?? undefined,
+        lastSeenAt: m.lastSeenAt instanceof Timestamp ? m.lastSeenAt.toMillis() : undefined,
+        profiles: Number(m.profiles ?? 0),
+        workouts: Number(m.workouts ?? 0),
+        lastWorkoutAt: m.lastWorkoutAt ?? undefined,
+        bodyLogs: Number(m.bodyLogs ?? 0),
+      }
+    })
+  } catch (e) {
+    const code = (e as { code?: string })?.code
+    throw new Error(
+      code === 'permission-denied'
+        ? 'Sin permiso para ver las cuentas: revisa que las reglas de Firestore incluyan el acceso de administrador.'
+        : 'No se pudo cargar la lista de cuentas.',
+    )
+  }
 }
 
 const records = () => collection(fs, 'users', user!.uid, 'records')
@@ -132,6 +235,7 @@ async function push() {
       for (const it of chunk) await it.done()
     }
     setStatus({ lastSyncedAt: Date.now(), error: undefined })
+    if (items.length) scheduleMemberUpdate()
   } catch (e) {
     setStatus({ error: e instanceof Error ? e.message : String(e) })
   } finally {
@@ -170,8 +274,9 @@ function startSync(u: User) {
   } catch {
     // Sin almacenamiento: no afecta a la sincronización.
   }
-  setStatus({ email: u.email ?? undefined, error: undefined })
+  setStatus({ email: u.email ?? undefined, emailVerified: u.emailVerified, error: undefined })
 
+  let first = true
   unsubSnapshot = onSnapshot(
     records(),
     async (snapshot) => {
@@ -179,6 +284,12 @@ function startSync(u: User) {
         if (change.type !== 'removed') await applyRemote(change.doc)
       }
       setStatus({ lastSyncedAt: Date.now(), pending: await countPending(), error: undefined })
+      // Tras la primera descarga, los datos locales ya están completos para el resumen de uso.
+      if (first) {
+        scheduleMemberUpdate(true)
+        void checkAdmin()
+      }
+      first = false
     },
     (e) => setStatus({ error: e.message }),
   )
@@ -198,6 +309,7 @@ function stopSync() {
   dirtyWatch?.unsubscribe()
   dirtyWatch = undefined
   if (pushTimer) clearTimeout(pushTimer)
+  if (memberTimer) clearTimeout(memberTimer)
   user = null
 }
 
@@ -226,7 +338,7 @@ export function initSync(config: FirebaseOptions) {
       startSync(u)
     } else {
       stopSync()
-      setStatus({ email: undefined, pending: 0, error: undefined })
+      setStatus({ email: undefined, emailVerified: undefined, isAdmin: false, pending: 0, error: undefined })
     }
   })
 }
@@ -303,6 +415,7 @@ export async function deleteAccountAndData() {
       for (const d of snapshot.docs.slice(i, i + BATCH_SIZE)) batch.delete(d.ref)
       await batch.commit()
     }
+    await deleteDoc(doc(fs, 'members', current.uid)).catch(() => undefined)
     stopSync()
     await deleteUser(current)
   } catch (e) {
@@ -314,6 +427,27 @@ export async function deleteAccountAndData() {
   } catch {
     // Sin almacenamiento: no afecta.
   }
+}
+
+/** Envía el correo de verificación a la cuenta actual. */
+export async function sendVerification() {
+  if (!auth.currentUser) throw new Error('No hay una sesión iniciada.')
+  try {
+    await sendEmailVerification(auth.currentUser)
+  } catch (e) {
+    throw friendly(e)
+  }
+}
+
+/** Vuelve a comprobar si el correo ya se verificó (tras pulsar el enlace del correo). */
+export async function refreshVerification(): Promise<boolean> {
+  const current = auth.currentUser
+  if (!current) return false
+  await current.reload()
+  await current.getIdToken(true)
+  setStatus({ emailVerified: current.emailVerified })
+  await checkAdmin()
+  return current.emailVerified
 }
 
 export function syncNow() {

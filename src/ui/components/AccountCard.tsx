@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { SYNC_LABELS, useSync } from '../sync'
 
 const BADGE: Record<string, string> = { synced: 'accent', syncing: '', offline: 'warn', error: 'danger', 'signed-out': '' }
@@ -105,6 +106,41 @@ export function AccountCard() {
           <strong>{status.lastSyncedAt ? new Date(status.lastSyncedAt).toLocaleString('es') : '—'}</strong>
         </li>
       </ul>
+      {status.isAdmin && (
+        <Link className="btn small" to="/admin" style={{ alignSelf: 'flex-start' }}>
+          Abrir el panel de administración
+        </Link>
+      )}
+      {!status.emailVerified && (
+        <div className="alert info stack-sm">
+          <span>
+            Tu correo aún no está verificado.
+            {' '}Verificarlo protege tu cuenta y es necesario para el panel de administración.
+          </span>
+          <div className="row">
+            <button
+              className="btn small"
+              disabled={busy}
+              onClick={() =>
+                void run(() => engine!.sendVerification(), 'Te enviamos un correo: abre el enlace y luego pulsa «Ya lo verifiqué». Revisa también el spam.')
+              }
+            >
+              Enviar correo de verificación
+            </button>
+            <button
+              className="btn small"
+              disabled={busy}
+              onClick={() =>
+                void run(async () => {
+                  if (!(await engine!.refreshVerification())) throw new Error('Todavía no aparece verificado. Abre el enlace del correo y vuelve a intentarlo.')
+                }, 'Correo verificado.')
+              }
+            >
+              Ya lo verifiqué
+            </button>
+          </div>
+        </div>
+      )}
       {status.state === 'offline' && (
         <div className="alert warn">Sin conexión: los cambios se guardan aquí y se subirán al volver internet.</div>
       )}
