@@ -117,6 +117,27 @@ export function AccountCard() {
           Cerrar sesión
         </button>
       </div>
+      <details>
+        <summary style={{ cursor: 'pointer', fontSize: '0.85rem', color: 'var(--muted)' }}>Eliminar cuenta</summary>
+        <div className="stack-sm" style={{ marginTop: '0.5rem' }}>
+          <small>
+            Borra tu cuenta y todos tus datos de la nube y de este dispositivo. No se puede deshacer: descarga antes un
+            respaldo si quieres conservarlos.
+          </small>
+          <button
+            className="btn small danger"
+            style={{ alignSelf: 'flex-start' }}
+            disabled={busy}
+            onClick={() => {
+              if (confirm('¿Eliminar tu cuenta y todos tus datos? Esta acción no se puede deshacer.')) {
+                void run(() => engine!.deleteAccountAndData())
+              }
+            }}
+          >
+            Eliminar mi cuenta y mis datos
+          </button>
+        </div>
+      </details>
       {message && <div className={`alert ${message.kind}`}>{message.text}</div>}
     </div>
   )

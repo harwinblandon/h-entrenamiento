@@ -1,6 +1,7 @@
 import { initializeApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app'
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
   getAuth,
   onAuthStateChanged,
   sendPasswordResetEmail,
@@ -12,6 +13,7 @@ import {
 import {
   collection,
   doc,
+  getDocs,
   getFirestore,
   onSnapshot,
   serverTimestamp,
@@ -246,6 +248,7 @@ const AUTH_ERRORS: Record<string, string> = {
   'auth/wrong-password': 'Correo o contraseña incorrectos.',
   'auth/too-many-requests': 'Demasiados intentos. Espera unos minutos.',
   'auth/network-request-failed': 'Sin conexión. Inténtalo con internet.',
+  'auth/requires-recent-login': 'Por seguridad, cierra sesión, vuelve a entrar y repite la operación.',
 }
 
 function friendly(e: unknown): Error {
@@ -281,6 +284,30 @@ export async function resetPassword(email: string) {
 export async function signOutAndClear() {
   stopSync()
   await signOut(auth)
+  await clearLocalData()
+  try {
+    localStorage.removeItem(LINKED_UID_KEY)
+  } catch {
+    // Sin almacenamiento: no afecta.
+  }
+}
+
+/** Elimina la cuenta, todos sus datos en la nube y los datos de este dispositivo. */
+export async function deleteAccountAndData() {
+  const current = auth.currentUser
+  if (!current || !user) throw new Error('No hay una sesión iniciada.')
+  try {
+    const snapshot = await getDocs(records())
+    for (let i = 0; i < snapshot.docs.length; i += BATCH_SIZE) {
+      const batch = writeBatch(fs)
+      for (const d of snapshot.docs.slice(i, i + BATCH_SIZE)) batch.delete(d.ref)
+      await batch.commit()
+    }
+    stopSync()
+    await deleteUser(current)
+  } catch (e) {
+    throw friendly(e)
+  }
   await clearLocalData()
   try {
     localStorage.removeItem(LINKED_UID_KEY)
