@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
-import type { BodyLog, CustomFood, Equipment, FoodLog, Plan, Profile, WorkoutLog } from '../domain/types'
+import type { BodyLog, CustomFood, Equipment, FoodLog, Plan, Profile, SharedFood, WorkoutLog } from '../domain/types'
 import { DIRTY, REMOTE, setDeleteTracking, setTombstoneHandler, SYNCED_TABLES, syncMiddleware, VERSION, type SyncedTable } from './syncMiddleware'
 
 /** Marca de borrado local pendiente de subir a la nube. */
@@ -17,6 +17,8 @@ export const db = new Dexie('atlas') as Dexie & {
   bodyLogs: EntityTable<BodyLog, 'id'>
   foodLogs: EntityTable<FoodLog, 'id'>
   customFoods: EntityTable<CustomFood, 'id'>
+  /** Copia local de la lista común de productos (la fuente es Firestore; no se sincroniza como registro). */
+  sharedFoods: EntityTable<SharedFood, 'id'>
   tombstones: EntityTable<Tombstone, 'key'>
 }
 
@@ -112,13 +114,20 @@ db.version(5).stores({
   customFoods: 'id, profileId, _dirty',
 })
 
+// v6: copia local de la lista común de productos y códigos de barras.
+db.version(6).stores({
+  customFoods: 'id, profileId, barcode, _dirty',
+  sharedFoods: 'id, barcode',
+})
+
 /** Borra todos los datos locales (al cerrar sesión: siguen en la nube). */
 export async function clearLocalData() {
   setDeleteTracking(false)
   try {
-    await db.transaction('rw', [db.profiles, db.plans, db.workouts, db.bodyLogs, db.foodLogs, db.customFoods, db.tombstones], async () => {
+    await db.transaction('rw', [db.profiles, db.plans, db.workouts, db.bodyLogs, db.foodLogs, db.customFoods, db.sharedFoods, db.tombstones], async () => {
       for (const t of SYNCED_TABLES) await db.table(t).clear()
       await db.tombstones.clear()
+      await db.sharedFoods.clear()
     })
   } finally {
     setDeleteTracking(true)

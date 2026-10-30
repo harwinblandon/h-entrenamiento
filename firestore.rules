@@ -7,6 +7,24 @@ service cloud.firestore {
     match /users/{uid}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
+    // Lista común de productos: cualquier cuenta la lee, agrega y corrige (la app guarda las versiones
+    // anteriores); nadie puede cambiar quién lo creó ni firmar con otra cuenta; borrar, solo el administrador.
+    match /sharedFoods/{id} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.per100.kcal is number
+        && request.resource.data.versions.size() <= 10;
+      allow update: if request.auth != null
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.per100.kcal is number
+        && request.resource.data.versions.size() <= 10;
+      allow delete: if request.auth != null
+        && request.auth.token.email == 'CORREO_DEL_ADMINISTRADOR'
+        && request.auth.token.email_verified == true;
+    }
     // Resumen de uso por cuenta: lo escribe su dueño y solo el administrador puede leerlos todos.
     match /members/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;

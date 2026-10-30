@@ -28,6 +28,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore'
 import { liveQuery, type Subscription } from 'dexie'
+import type { FoodLabel, SharedFood, SharedFoodVersion } from '../domain/types'
 import { clearLocalData, db, migrateProfile } from './db'
 import { decideRemote, markRemoteDelete, REMOTE, stripSyncFields, SYNCED_TABLES, type SyncedTable } from './syncMiddleware'
 
@@ -64,6 +65,7 @@ let auth: Auth
 let fs: Firestore
 let user: User | null = null
 let unsubSnapshot: (() => void) | undefined
+let unsubShared: (() => void) | undefined
 let dirtyWatch: Subscription | undefined
 let pushTimer: ReturnType<typeof setTimeout> | undefined
 let pushing = false
@@ -299,6 +301,17 @@ function startSync(u: User) {
     (e) => setStatus({ error: e.message }),
   )
 
+  // Lista común de productos: se guarda una copia local para buscar y escanear sin conexión.
+  unsubShared = onSnapshot(
+    collection(fs, 'sharedFoods'),
+    async (snapshot) => {
+      const changes = snapshot.docChanges()
+      await db.sharedFoods.bulkDelete(changes.filter((c) => c.type === 'removed').map((c) => c.doc.id))
+      await db.sharedFoods.bulkPut(changes.filter((c) => c.type !== 'removed').map((c) => ({ ...(c.doc.data() as SharedFood), id: c.doc.id })))
+    },
+    (e) => console.warn('No se pudo leer la lista común de productos (¿reglas sin publicar?)', e),
+  )
+
   // Cada cambio local (registros pendientes o borrados) programa una subida.
   dirtyWatch = liveQuery(countPending).subscribe({
     next: (pending) => {
@@ -311,6 +324,8 @@ function startSync(u: User) {
 function stopSync() {
   unsubSnapshot?.()
   unsubSnapshot = undefined
+  unsubShared?.()
+  unsubShared = undefined
   dirtyWatch?.unsubscribe()
   dirtyWatch = undefined
   if (pushTimer) clearTimeout(pushTimer)
@@ -460,3 +475,58 @@ export function syncNow() {
 }
 
 export const pendingChanges = countPending
+
+/** Hay sesión en la nube: los productos nuevos van a la lista común. */
+export const canShare = () => !!user
+
+const MAX_VERSIONS = 10
+const clean = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T
+
+/**
+ * Crea o corrige un producto de la lista común. Al corregir, la versión anterior queda guardada para
+ * poder restaurarla. Con código de barras, el código es el id (un producto por código).
+ */
+export async function saveSharedFood(label: FoodLabel, opts: { id?: string; source: SharedFood['source']; byName: string }): Promise<SharedFood> {
+  if (!user) throw new Error('Inicia sesión para guardar en la lista común.')
+  const id = opts.id ?? label.barcode ?? crypto.randomUUID()
+  const existing = await db.sharedFoods.get(id)
+  const now = Date.now()
+  const versions: SharedFoodVersion[] = existing
+    ? [
+        clean({ name: existing.name, brand: existing.brand, barcode: existing.barcode, per100: existing.per100, portion: existing.portion, byName: existing.updatedByName, at: existing.updatedAt }),
+        ...existing.versions,
+      ].slice(0, MAX_VERSIONS)
+    : []
+  const item: SharedFood = clean({
+    ...label,
+    id,
+    source: existing?.source ?? opts.source,
+    createdBy: existing?.createdBy ?? user.uid,
+    createdByName: existing?.createdByName ?? opts.byName,
+    createdAt: existing?.createdAt ?? now,
+    updatedBy: user.uid,
+    updatedByName: opts.byName,
+    updatedAt: now,
+    versions,
+  })
+  const { id: _id, ...data } = item
+  const write = setDoc(doc(fs, 'sharedFoods', id), data)
+  // Sin conexión, Firestore deja la escritura en cola: no esperar más de unos segundos.
+  const result = await Promise.race([write.then(() => 'ok' as const), new Promise<'pending'>((r) => setTimeout(() => r('pending'), 4000))]).catch((e) => {
+    const code = (e as { code?: string })?.code
+    throw new Error(
+      code === 'permission-denied'
+        ? 'Sin permiso para guardar en la lista común: falta publicar las reglas de Firestore de productos.'
+        : 'No se pudo guardar el producto.',
+    )
+  })
+  if (result === 'pending') void write.catch((e) => console.warn('No se subió el producto', e))
+  await db.sharedFoods.put(item)
+  return item
+}
+
+/** Elimina un producto de la lista común (solo el administrador, según las reglas). */
+export async function deleteSharedFood(id: string) {
+  await deleteDoc(doc(fs, 'sharedFoods', id))
+  await db.sharedFoods.delete(id)
+}

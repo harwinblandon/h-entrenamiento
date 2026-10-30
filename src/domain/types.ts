@@ -313,15 +313,40 @@ export interface FoodLog {
   createdAt: string
 }
 
-/** Producto propio (p. ej. marca de tienda) tomado de la tabla nutricional del empaque. */
-export interface CustomFood {
-  id: string
-  profileId: string
+/** Datos de un producto empacado tomados de su tabla nutricional. */
+export interface FoodLabel {
   name: string
   brand?: string
+  barcode?: string
   per100: Macros
   /** Porción del empaque, si se registró. */
   portion?: { label: string; grams: number }
+}
+
+/** Producto propio guardado solo en esta cuenta o dispositivo (cuando no hay sesión en la nube). */
+export interface CustomFood extends FoodLabel {
+  id: string
+  profileId: string
   fatPrompt?: boolean
   createdAt: string
+}
+
+export interface SharedFoodVersion extends FoodLabel {
+  byName: string
+  at: number
+}
+
+/** Producto de la lista común del grupo (Firestore sharedFoods/{id}); cualquiera puede corregirlo. */
+export interface SharedFood extends FoodLabel {
+  id: string
+  /** De dónde salieron los datos: etiqueta copiada a mano u Open Food Facts. */
+  source: 'label' | 'off'
+  createdBy: string
+  createdByName: string
+  createdAt: number
+  updatedBy: string
+  updatedByName: string
+  updatedAt: number
+  /** Versiones anteriores, de la más reciente a la más antigua (máximo 10). */
+  versions: SharedFoodVersion[]
 }

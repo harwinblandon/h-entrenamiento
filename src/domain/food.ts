@@ -1,4 +1,4 @@
-import type { AddedFat, CustomFood, FoodLog, FoodState, Macros, MealSlot } from './types'
+import type { AddedFat, CustomFood, FoodLabel, FoodLog, FoodState, Macros, MealSlot, SharedFood } from './types'
 
 /** Alimento listo para registrar: valores por 100 g en crudo y/o cocido. */
 export interface Food {
@@ -13,7 +13,8 @@ export interface Food {
   units: FoodUnit[]
   /** Suele prepararse con aceite o mantequilla: hay que preguntar cuánto se usó. */
   fatPrompt: boolean
-  source: 'curated' | 'recipe' | 'usda' | 'custom'
+  source: 'curated' | 'recipe' | 'usda' | 'custom' | 'shared'
+  barcode?: string
   /** Ingredientes de una preparación (gramos crudos) y peso final cocido. */
   recipe?: { ingredients: { key: string; state: FoodState; grams: number }[]; yieldG: number }
 }
@@ -142,17 +143,94 @@ export function loadFoodDb(): Promise<FoodDb> {
   return loading
 }
 
-export function customToFood(c: CustomFood): Food {
+function labelToFood(l: FoodLabel, key: string, group: string, source: Food['source']): Food {
   return {
-    key: `custom:${c.id}`,
-    name: c.brand ? `${c.name} (${c.brand})` : c.name,
-    aliases: [],
-    group: 'Mis productos',
-    raw: c.per100,
-    units: c.portion ? [{ label: c.portion.label, grams: c.portion.grams }] : [],
-    fatPrompt: !!c.fatPrompt,
-    source: 'custom',
+    key,
+    // La marca solo si no está ya en el nombre («Nutella», no «Nutella (Nutella)»).
+    name: l.brand && !normalize(l.name).includes(normalize(l.brand)) ? `${l.name} (${l.brand})` : l.name,
+    aliases: l.brand ? [l.brand] : [],
+    group,
+    raw: l.per100,
+    units: l.portion ? [{ label: l.portion.label, grams: l.portion.grams }] : [],
+    fatPrompt: false,
+    source,
+    barcode: l.barcode,
   }
+}
+
+export function customToFood(c: CustomFood): Food {
+  return { ...labelToFood(c, `custom:${c.id}`, 'Mis productos', 'custom'), fatPrompt: !!c.fatPrompt }
+}
+
+export function sharedToFood(s: SharedFood): Food {
+  return labelToFood(s, `shared:${s.id}`, 'Productos del grupo', 'shared')
+}
+
+// --- Etiquetas y Open Food Facts ------------------------------------------------------------------
+
+/**
+ * Revisa que la etiqueta tenga sentido: las calorías deben cuadrar con 4 kcal/g de proteína y
+ * carbohidratos y 9 kcal/g de grasa, y los macros no pueden pasar de 100 g por cada 100 g.
+ */
+export function checkLabel(m: Macros): string[] {
+  const out: string[] = []
+  if (m.kcal > 900) out.push('Más de 900 kcal por 100 g es imposible (el aceite puro tiene ~884): revisa si copiaste los valores de otra cantidad.')
+  if (m.p + m.f + m.c > 101) {
+    out.push('Proteína, grasa y carbohidratos suman más de 100 g por cada 100 g: quizá la porción no corresponde a esos valores.')
+  }
+  const computed = 4 * m.p + 4 * m.c + 9 * m.f
+  const diff = Math.abs(m.kcal - computed)
+  if ((m.kcal > 0 || computed > 0) && diff > Math.max(25, 0.2 * Math.max(m.kcal, computed))) {
+    out.push(
+      `Las calorías no cuadran con los macros: con esa proteína, grasa y carbohidratos serían unas ${Math.round(computed)} kcal por 100 g, ` +
+        `no ${Math.round(m.kcal)}. Revisa la etiqueta (la fibra, los polialcoholes o el alcohol explican diferencias pequeñas).`,
+    )
+  }
+  return out
+}
+
+/** Respuesta de la API de Open Food Facts (solo los campos que se piden). */
+export interface OffProduct {
+  product_name?: string
+  product_name_es?: string
+  generic_name?: string
+  brands?: string
+  serving_size?: string
+  serving_quantity?: number | string
+  nutriments?: Record<string, number | string | undefined>
+}
+
+export const OFF_FIELDS = 'product_name,product_name_es,generic_name,brands,serving_size,serving_quantity,nutriments'
+
+/** Convierte un producto de Open Food Facts en datos de etiqueta; undefined si no trae calorías. */
+export function offToLabel(p: OffProduct, barcode: string): FoodLabel | undefined {
+  const n = p.nutriments ?? {}
+  const num = (k: string) => {
+    if (n[k] === undefined || n[k] === '') return undefined
+    const v = Number(n[k])
+    return Number.isFinite(v) ? v : undefined
+  }
+  const kj = num('energy_100g')
+  const kcal = num('energy-kcal_100g') ?? (kj !== undefined ? kj / 4.184 : undefined)
+  if (kcal === undefined) return undefined
+  const r1 = (x: number | undefined) => Math.round((x ?? 0) * 10) / 10
+  const serving = Number(p.serving_quantity)
+  return {
+    name: (p.product_name_es || p.product_name || p.generic_name || 'Producto sin nombre').trim(),
+    brand: p.brands?.split(',')[0]?.trim() || undefined,
+    barcode,
+    per100: { kcal: Math.round(kcal), p: r1(num('proteins_100g')), f: r1(num('fat_100g')), c: r1(num('carbohydrates_100g')), fib: r1(num('fiber_100g')) },
+    portion: serving > 0 ? { label: p.serving_size?.trim() || 'Porción', grams: serving } : undefined,
+  }
+}
+
+/** Busca un código de barras en Open Food Facts (base abierta, licencia ODbL). */
+export async function fetchOpenFoodFacts(barcode: string): Promise<FoodLabel | undefined> {
+  const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json?fields=${OFF_FIELDS}`)
+  if (r.status === 404) return undefined
+  if (!r.ok) throw new Error(`HTTP ${r.status}`)
+  const data = (await r.json()) as { status?: number; product?: OffProduct }
+  return data.status === 1 && data.product ? offToLabel(data.product, barcode) : undefined
 }
 
 export const normalize = (s: string) =>
@@ -166,6 +244,7 @@ export const normalize = (s: string) =>
 export function searchFoods(foods: Food[], query: string, limit = 30): Food[] {
   const q = normalize(query)
   if (q.length < 2) return []
+  if (/^\d{8,14}$/.test(q)) return foods.filter((f) => f.barcode === q)
   const words = q.split(/\s+/)
   const scored: { f: Food; s: number }[] = []
   for (const f of foods) {
@@ -176,7 +255,7 @@ export function searchFoods(foods: Food[], query: string, limit = 30): Food[] {
     if (name === q || f.aliases.some((a) => normalize(a) === q)) s += 100
     if (name.startsWith(q)) s += 50
     else if (texts.some((t) => t.startsWith(words[0]))) s += 30
-    if (f.source === 'custom') s += 60
+    if (f.source === 'custom' || f.source === 'shared') s += 60
     else if (f.source === 'curated' || f.source === 'recipe') s += 40
     s -= name.length / 20
     scored.push({ f, s })

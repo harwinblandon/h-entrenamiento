@@ -64,6 +64,17 @@ export function EvidencePage() {
           (SR Legacy, dominio público), con nombres y cortes colombianos asignados por la app. Las preparaciones típicas (arepa,
           sancocho, ajiaco…) y algunas frutas sin dato en el USDA son estimaciones aproximadas.
         </p>
+        <p style={{ fontSize: '0.9rem', margin: 0 }}>
+          Al escanear un código de barras, los datos del producto se consultan en{' '}
+          <a href="https://world.openfoodfacts.org/" target="_blank" rel="noreferrer">
+            Open Food Facts
+          </a>
+          , base abierta bajo la licencia{' '}
+          <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noreferrer">
+            ODbL
+          </a>
+          . Los productos que el grupo agrega o corrige quedan en la lista común de la app.
+        </p>
       </article>
     </div>
   )
