@@ -13,6 +13,15 @@ R = 'raw'
 C = 'cooked'
 A = 'any'
 
+# Gramos comestibles por huevo según su clasificación (punto medio del rango con cáscara × 0,88).
+EGG_SIZES = [('A', 50), ('AA', 56), ('AAA', 63), ('Jumbo', 72)]
+
+
+def EGG_UNITS(state, factor, prefix='Huevo'):
+    """Una medida por tamaño de huevo; `factor` convierte el huevo crudo en la preparación o la parte."""
+    return [(f'{prefix} {size}', state, round(grams * factor)) for size, grams in EGG_SIZES]
+
+
 FOODS = [
     # --- Res: cortes colombianos y su equivalente del USDA ---------------------------------------
     ('lomo_fino', 'Lomo fino de res', ['solomito', 'filete', 'tenderloin'], 'Res',
@@ -139,16 +148,18 @@ FOODS = [
      r'^Crustaceans, shrimp, raw', r'^Crustaceans, shrimp, cooked', [], True),
 
     # --- Huevos ------------------------------------------------------------------------------------
-    ('huevo', 'Huevo entero', ['huevos'], 'Huevos',
-     r'^Egg, whole, raw, fresh', r'^Egg, whole, cooked, hard-boiled', [('Unidad grande', A, 50), ('Unidad mediana', A, 44)], True),
+    # Clasificación colombiana por peso con cáscara (NTC 1240): A 53-60 g, AA 60-67 g, AAA 67-78 g, Jumbo
+    # más de 78 g. Se registra la parte comestible (~88 %, la cáscara es ~12 %), con el punto medio de cada rango.
+    ('huevo', 'Huevo entero', ['huevos', 'huevo a', 'huevo aa', 'huevo aaa', 'huevo jumbo'], 'Huevos',
+     r'^Egg, whole, raw, fresh', r'^Egg, whole, cooked, hard-boiled', EGG_UNITS(A, 1), True),
     ('huevo_frito', 'Huevo frito', ['huevo frito'], 'Huevos',
-     None, r'^Egg, whole, cooked, fried', [('Unidad', C, 46)], False),
+     None, r'^Egg, whole, cooked, fried', EGG_UNITS(C, 0.92), False),
     ('huevo_revuelto', 'Huevos revueltos (pericos sin hogao)', ['revueltos'], 'Huevos',
-     None, r'^Egg, whole, cooked, scrambled', [('Porción de 2 huevos', C, 120)], False),
+     None, r'^Egg, whole, cooked, scrambled', EGG_UNITS(C, 1.2), False),
     ('clara', 'Clara de huevo', ['claras'], 'Huevos',
-     r'^Egg, white, raw, fresh', None, [('Clara de 1 huevo', R, 33)], True),
+     r'^Egg, white, raw, fresh', None, EGG_UNITS(R, 0.66, 'Clara de huevo'), True),
     ('yema', 'Yema de huevo', ['yemas'], 'Huevos',
-     r'^Egg, yolk, raw, fresh', None, [('Yema de 1 huevo', R, 17)], False),
+     r'^Egg, yolk, raw, fresh', None, EGG_UNITS(R, 0.34, 'Yema de huevo'), False),
 
     # --- Lácteos -----------------------------------------------------------------------------------
     ('leche_entera', 'Leche entera', ['leche'], 'Lácteos',

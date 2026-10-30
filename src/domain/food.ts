@@ -25,7 +25,11 @@ export interface FoodUnit {
   state?: FoodState
   grams: number
   hand?: boolean
+  /** Se cuenta por piezas (huevos, tajadas, arepas…): aun con báscula, se registra por unidades. */
+  count?: boolean
 }
+
+const COUNTED = /^(unidad|huevo|clara|yema|tajada|tira|arepa|patac|sobre|scoop)/i
 
 export const MEALS: { id: MealSlot; label: string }[] = [
   { id: 'breakfast', label: 'Desayuno' },
@@ -88,7 +92,7 @@ function fromRaw(f: RawFood, source: Food['source']): Food {
     raw: f.r && toMacros(f.r),
     cooked: f.c && toMacros(f.c),
     fdc: { raw: f.r?.[5], cooked: f.c?.[5] },
-    units: (f.u ?? []).map(([label, s, grams]) => ({ label, state: STATE[s], grams })),
+    units: (f.u ?? []).map(([label, s, grams]) => ({ label, state: STATE[s], grams, count: COUNTED.test(label) || undefined })),
     fatPrompt: f.fat === 1,
     source,
   }

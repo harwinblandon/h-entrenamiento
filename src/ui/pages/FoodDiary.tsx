@@ -53,7 +53,7 @@ const r0 = (n: number) => Math.round(n)
 /** «150 g crudo», «1 palma (100 g) cocido», «2 × 3 galletas (60 g)». El estado solo si el alimento tiene ambos. */
 function amountText(e: FoodLog, food?: Food): string {
   const amount = e.measure
-    ? `${e.measure.count === 1 ? '' : `${fmtNum(e.measure.count)} × `}${e.measure.label.toLowerCase()} (${r0(e.grams)} g)`
+    ? `${e.measure.count === 1 ? '' : `${fmtNum(e.measure.count)} × `}${e.measure.label.charAt(0).toLowerCase()}${e.measure.label.slice(1)} (${r0(e.grams)} g)`
     : `${fmtNum(e.grams)} g`
   const both = food ? food.raw && food.cooked && !food.recipe : false
   return both ? `${amount} ${e.state === 'raw' ? 'crudo' : 'cocido'}` : amount
@@ -148,20 +148,22 @@ function EntryEditor({
   const { food, entry } = draft
   const prev = entry ?? last
   const allUnits = food.units
-  // Sin báscula, o con un producto empacado, se empieza por la primera medida (la porción de la etiqueta).
+  // Sin báscula, con un producto empacado o con algo que se cuenta (huevos, tajadas…), se empieza por la primera
+  // medida (la porción de la etiqueta). Si ya se registró antes, se repite la misma forma.
   const packaged = food.source === 'custom' || food.source === 'shared'
   const initialUnit = prev
     ? prev.measure
       ? allUnits.findIndex((u) => u.label === prev.measure!.label)
       : -1
-    : (hands || packaged) && allUnits.length
+    : (hands || packaged || allUnits[0]?.count) && allUnits.length
       ? 0
       : -1
   const prevState = prev?.state && (prev.state === 'raw' ? food.raw : food.cooked) ? prev.state : undefined
   const [state, setState] = useState<FoodState>(allUnits[initialUnit]?.state ?? prevState ?? defaultState(food))
   const [unitIdx, setUnitIdx] = useState(initialUnit)
   const [count, setCount] = useState(prev?.measure?.count ?? 1)
-  const [gramsText, setGramsText] = useState(prev && !prev.measure ? String(prev.grams) : '')
+  // Si la medida anterior ya no existe (p. ej. cambió su nombre), se conservan sus gramos.
+  const [gramsText, setGramsText] = useState(prev && initialUnit < 0 ? String(prev.grams) : '')
 
   const prevFat = prev ? prev.addedFat : undefined
   const [fatUsed, setFatUsed] = useState<boolean | undefined>(prev ? !!prevFat : undefined)
@@ -263,7 +265,7 @@ function EntryEditor({
           <label className="field" style={{ width: 110 }}>
             Cantidad
             <select value={count} onChange={(e) => setCount(Number(e.target.value))}>
-              {[0.25, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 4, 5].map((n) => (
+              {[0.25, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].map((n) => (
                 <option key={n} value={n}>
                   {fmtNum(n)}
                 </option>
@@ -304,7 +306,7 @@ function EntryEditor({
         </p>
       )}
 
-      {yieldG && grams > 0 && (
+      {yieldG && grams > 0 && !unit?.count && (
         <p className="muted" style={{ fontSize: '0.8rem', margin: 0 }}>
           {state === 'raw'
             ? `${fmtNum(Math.round(grams))} g crudos ≈ ${Math.round((grams * yieldG) / 100)} g cocidos.`

@@ -52,6 +52,14 @@ describe('base de alimentos', () => {
     expect(food('banano').fatPrompt).toBe(false)
     expect(food('pechuga').units.find((u) => u.hand)).toMatchObject({ label: 'Palma', state: 'cooked', grams: 100 })
   })
+
+  it('cuenta los huevos por unidad según su clasificación', () => {
+    const egg = food('huevo').units
+    expect(egg.map((u) => u.label)).toEqual(['Huevo A', 'Huevo AA', 'Huevo AAA', 'Huevo Jumbo'])
+    expect(egg.every((u) => u.count)).toBe(true)
+    expect(egg.find((u) => u.label === 'Huevo AA')!.grams).toBe(56)
+    expect(food('arroz_blanco').units.some((u) => u.count)).toBe(false)
+  })
 })
 
 describe('registro con grasa de cocción', () => {
