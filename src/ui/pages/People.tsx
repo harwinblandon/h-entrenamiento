@@ -7,7 +7,61 @@ import { EXPERIENCE_LABELS, GOAL_LABELS } from '../../domain/labels'
 import { evaluateSafety } from '../../domain/safety'
 import { useActiveProfile } from '../activeProfile'
 import { applyFont, FONT_OPTIONS, storedFont } from '../appearance'
+import { loadTimerPrefs, playRestEnd, saveTimerPrefs, unlockAudio, type TimerPrefs } from '../sound'
 import { AccountCard } from '../components/AccountCard'
+
+function TimerSettings() {
+  const [prefs, setPrefs] = useState(loadTimerPrefs)
+  const update = (patch: Partial<TimerPrefs>) => {
+    const next = { ...prefs, ...patch }
+    setPrefs(next)
+    saveTimerPrefs(next)
+  }
+  return (
+    <div className="card stack-sm">
+      <h2>Cronómetro de descanso</h2>
+      <label className="check">
+        <input type="checkbox" checked={prefs.sound} onChange={(e) => update({ sound: e.target.checked })} />
+        Sonar una campanilla suave al terminar el descanso
+      </label>
+      <label className="check">
+        <input type="checkbox" checked={prefs.warn} disabled={!prefs.sound} onChange={(e) => update({ warn: e.target.checked })} />
+        Aviso discreto 10 segundos antes
+      </label>
+      <label className="check">
+        <input type="checkbox" checked={prefs.keepAwake} onChange={(e) => update({ keepAwake: e.target.checked })} />
+        Mantener la pantalla encendida durante la sesión (recomendado: con la pantalla apagada el celular no deja sonar)
+      </label>
+      <div className="row" style={{ alignItems: 'center' }}>
+        <label className="field" style={{ flex: 1, minWidth: 180 }}>
+          Volumen
+          <input
+            type="range"
+            min={0.1}
+            max={1}
+            step={0.05}
+            value={prefs.volume}
+            disabled={!prefs.sound}
+            onChange={(e) => update({ volume: Number(e.target.value) })}
+            style={{ minHeight: 0, padding: 0 }}
+          />
+        </label>
+        <button
+          type="button"
+          className="btn small"
+          disabled={!prefs.sound}
+          onClick={() => {
+            unlockAudio()
+            playRestEnd(prefs.volume)
+          }}
+        >
+          Probar sonido
+        </button>
+      </div>
+      <small>Sube el volumen multimedia del celular. Si el teléfono está en silencio, algunos modelos no reproducen sonidos web.</small>
+    </div>
+  )
+}
 
 export function People() {
   const { profiles, active, setActiveId, isLocked } = useActiveProfile()
@@ -114,6 +168,8 @@ export function People() {
       </div>
 
       <AccountCard />
+
+      <TimerSettings />
 
       <div className="card stack-sm">
         <h2>Apariencia</h2>

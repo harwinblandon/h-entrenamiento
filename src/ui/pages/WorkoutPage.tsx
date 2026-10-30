@@ -22,6 +22,8 @@ import { useActiveProfile } from '../activeProfile'
 import { CycleComplete } from '../components/CycleComplete'
 import { ExerciseIllustration } from '../components/ExerciseIllustration'
 import { RestTimer, type TimerState } from '../components/RestTimer'
+import { loadTimerPrefs, unlockAudio } from '../sound'
+import { useWakeLock } from '../useWakeLock'
 
 const fmtKg = (n: number) => `${Number(n.toFixed(2))} kg`
 const fmtRir = ([a, b]: [number, number]) => (a === b ? `RIR ${a}` : `RIR ${a}–${b}`)
@@ -95,7 +97,11 @@ function SetInput({
       <button
         className="btn primary block"
         disabled={!valid}
-        onClick={() => onSubmit({ weight: Number(weight), reps: Number(reps), rir: Number(rir), pain: Number(pain), technique })}
+        onClick={() => {
+          // El toque habilita el sonido del cronómetro que empieza ahora.
+          unlockAudio()
+          onSubmit({ weight: Number(weight), reps: Number(reps), rir: Number(rir), pain: Number(pain), technique })
+        }}
       >
         Registrar serie
       </button>
@@ -343,6 +349,7 @@ function GuidedSession({
   onFinished: (logId: string) => void
 }) {
   const [timer, setTimer] = useState<TimerState | null>(null)
+  useWakeLock(loadTimerPrefs().keepAwake)
   const [fatigue, setFatigue] = useState(3)
   const [notes, setNotes] = useState('')
   const session = plan.sessions[log.sessionIndex]
