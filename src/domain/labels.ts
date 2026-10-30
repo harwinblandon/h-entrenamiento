@@ -41,14 +41,18 @@ export const EQUIPMENT_LABELS: Record<Equipment, string> = {
   machine: 'Máquinas',
   cable: 'Poleas',
   smith: 'Máquina Smith',
+  pullup_bar: 'Barra de dominadas',
+  dip_station: 'Paralelas para fondos',
   suspension: 'TRX / suspensión',
-  bodyweight: 'Peso corporal (barra de dominadas, paralelas)',
+  household: 'Objetos de casa (silla firme, mochila con libros, garrafas, toalla)',
+  bodyweight: 'Peso corporal (suelo, pared, escalón)',
 }
 
 export const EQUIPMENT_PRESETS: { label: string; items: Equipment[] }[] = [
-  { label: 'Gimnasio completo', items: ['barbell', 'dumbbell', 'machine', 'cable', 'smith', 'bodyweight'] },
-  { label: 'Gimnasio básico', items: ['barbell', 'dumbbell', 'cable', 'bodyweight'] },
-  { label: 'Casa con mancuernas', items: ['dumbbell', 'bodyweight'] },
+  { label: 'Gimnasio completo', items: ['barbell', 'dumbbell', 'machine', 'cable', 'smith', 'pullup_bar', 'dip_station', 'bodyweight'] },
+  { label: 'Gimnasio básico', items: ['barbell', 'dumbbell', 'cable', 'pullup_bar', 'dip_station', 'bodyweight'] },
+  { label: 'Casa sin implementos', items: ['bodyweight', 'household'] },
+  { label: 'Casa con mancuernas', items: ['dumbbell', 'bodyweight', 'household'] },
   { label: 'Solo TRX', items: ['suspension', 'bodyweight'] },
 ]
 

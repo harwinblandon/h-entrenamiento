@@ -28,7 +28,7 @@ export const EXERCISES: Exercise[] = [
   },
   {
     id: 'machine_chest_press', name: 'Press de pecho en máquina', primary: ['chest'], secondary: ['triceps', 'delts_front'],
-    category: 'machine', pattern: 'horizontal_press', equipment: 'machine', increment: 5, failureSafe: true, fatigue: 1,
+    category: 'machine', pattern: 'horizontal_press', equipment: 'machine', increment: 5, failureSafe: true, fatigue: 1, difficulty: 1,
     cues: ['Ajustar asiento: agarres a la altura media del pecho', 'Pausa breve en el estiramiento'],
   },
   {
@@ -43,7 +43,7 @@ export const EXERCISES: Exercise[] = [
   },
   {
     id: 'dips', name: 'Fondos en paralelas', primary: ['chest'], secondary: ['triceps', 'delts_front'],
-    category: 'compound', pattern: 'dip', equipment: 'bodyweight', increment: 2.5, failureSafe: false, fatigue: 2,
+    category: 'compound', pattern: 'dip', equipment: 'dip_station', increment: 2.5, failureSafe: false, fatigue: 2, difficulty: 3,
     repRange: [6, 12], loadNote: 'lastre en kg (0 = peso corporal)',
     cues: ['Inclinar el torso hacia delante', 'Bajar solo hasta donde el hombro lo tolere'],
   },
@@ -57,13 +57,13 @@ export const EXERCISES: Exercise[] = [
   // Espalda
   {
     id: 'pull_up', name: 'Dominadas', primary: ['back'], secondary: ['biceps'],
-    category: 'compound', pattern: 'vertical_pull', equipment: 'bodyweight', increment: 2.5, failureSafe: true, fatigue: 2,
+    category: 'compound', pattern: 'vertical_pull', equipment: 'pullup_bar', increment: 2.5, failureSafe: true, fatigue: 2, difficulty: 3,
     loadNote: 'lastre en kg (0 = peso corporal)',
     cues: ['Partir desde brazos extendidos', 'Llevar el pecho hacia la barra'],
   },
   {
     id: 'lat_pulldown', name: 'Jalón al pecho', primary: ['back'], secondary: ['biceps'],
-    category: 'machine', pattern: 'vertical_pull', equipment: 'cable', increment: 5, failureSafe: true, fatigue: 1,
+    category: 'machine', pattern: 'vertical_pull', equipment: 'cable', increment: 5, failureSafe: true, fatigue: 1, difficulty: 1,
     repRange: [8, 12],
     cues: ['Llevar los codos hacia las costillas', 'Evitar balanceo del torso'],
   },
@@ -243,7 +243,7 @@ export const EXERCISES: Exercise[] = [
   },
   {
     id: 'leg_press', name: 'Prensa de piernas', primary: ['quads'], secondary: ['glutes', 'adductors'],
-    category: 'machine', pattern: 'leg_press', equipment: 'machine', increment: 5, failureSafe: true, fatigue: 2,
+    category: 'machine', pattern: 'leg_press', equipment: 'machine', increment: 5, failureSafe: true, fatigue: 2, difficulty: 1,
     repRange: [8, 12],
     cues: ['Zona lumbar apoyada todo el recorrido', 'No bloquear las rodillas arriba'],
   },
@@ -261,7 +261,7 @@ export const EXERCISES: Exercise[] = [
   },
   {
     id: 'goblet_squat', name: 'Sentadilla goblet', primary: ['quads'], secondary: ['glutes', 'adductors'],
-    category: 'compound', pattern: 'squat', equipment: 'dumbbell', increment: 2, failureSafe: true, fatigue: 1, loadLimited: true,
+    category: 'compound', pattern: 'squat', equipment: 'dumbbell', increment: 2, failureSafe: true, fatigue: 1, difficulty: 1, loadLimited: true,
     repRange: [10, 15],
     cues: ['Mancuerna pegada al pecho', 'Codos entre las rodillas abajo'],
   },
@@ -351,7 +351,7 @@ export const EXERCISES: Exercise[] = [
   },
   {
     id: 'hanging_leg_raise', name: 'Elevación de piernas colgado', primary: ['abs'], secondary: [],
-    category: 'isolation', pattern: 'trunk_flexion', equipment: 'bodyweight', increment: 0, failureSafe: true, fatigue: 1, trunkFlexion: true,
+    category: 'isolation', pattern: 'trunk_flexion', equipment: 'pullup_bar', increment: 0, failureSafe: true, fatigue: 1, difficulty: 3, trunkFlexion: true,
     repRange: [10, 15],
     cues: ['Enrollar la pelvis hacia arriba', 'Sin balanceo'],
   },
@@ -437,21 +437,21 @@ export const EXERCISES: Exercise[] = [
   },
   {
     id: 'nordic_curl', name: 'Curl nórdico', primary: ['hamstrings'], secondary: [],
-    category: 'isolation', pattern: 'knee_flexion', equipment: 'bodyweight', increment: 0, failureSafe: false, fatigue: 2, lengthened: true,
+    category: 'isolation', pattern: 'knee_flexion', equipment: 'bodyweight', increment: 0, failureSafe: false, fatigue: 2, difficulty: 3, lengthened: true,
     repRange: [4, 8], loadNote: 'Sin carga externa: progresa bajando más lento o con menos ayuda de las manos',
     progressionHint: 'bajada más lenta o menos ayuda de las manos',
     cues: ['Tobillos sujetos y cadera extendida', 'Frenar la bajada todo lo posible'],
   },
   {
     id: 'assisted_pull_up', name: 'Dominadas asistidas en máquina', primary: ['back'], secondary: ['biceps'],
-    category: 'machine', pattern: 'vertical_pull', equipment: 'machine', increment: 5, failureSafe: true, fatigue: 1, assisted: true,
+    category: 'machine', pattern: 'vertical_pull', equipment: 'machine', increment: 5, failureSafe: true, fatigue: 1, difficulty: 1, assisted: true,
     repRange: [6, 12], loadNote: 'kg de asistencia: menos asistencia = más difícil',
     progressionHint: 'menos kilos de asistencia',
     cues: ['Partir desde brazos extendidos', 'Llevar el pecho hacia la barra'],
   },
   {
     id: 'inverted_row', name: 'Remo invertido (barra o Smith)', primary: ['back'], secondary: ['biceps', 'delts_rear'],
-    category: 'compound', pattern: 'horizontal_pull', equipment: 'bodyweight', increment: 0, failureSafe: true, fatigue: 1,
+    category: 'compound', pattern: 'horizontal_pull', equipment: 'barbell', increment: 0, failureSafe: true, fatigue: 1,
     repRange: [8, 15], loadNote: 'Sin carga externa: barra más baja = más difícil',
     progressionHint: 'barra más baja o pies elevados',
     cues: ['Cuerpo rígido como una plancha', 'Pecho hacia la barra'],
@@ -464,13 +464,156 @@ export const EXERCISES: Exercise[] = [
     cues: ['Enrollar la columna, no tirar del cuello', 'Exhalar al subir'],
   },
   {
-    id: 'ab_wheel', name: 'Rueda abdominal', primary: ['abs'], secondary: [],
-    category: 'isolation', pattern: 'anti_extension', equipment: 'bodyweight', increment: 0, failureSafe: false, fatigue: 1,
+    id: 'ab_wheel', name: 'Rueda abdominal (o toalla deslizando en el suelo)', primary: ['abs'], secondary: [],
+    category: 'isolation', pattern: 'anti_extension', equipment: 'household', increment: 0, failureSafe: false, fatigue: 1, difficulty: 3,
     repRange: [6, 12], loadNote: 'Sin carga externa: progresa alargando el recorrido',
     progressionHint: 'más recorrido o desde los pies en lugar de las rodillas',
     cues: ['Pelvis en retroversión todo el recorrido', 'Avanzar solo hasta donde la lumbar no se arquee'],
   },
 
+  // Casa sin implementos: peso corporal y objetos fáciles de conseguir. Progresiones de menor a mayor dificultad.
+  {
+    id: 'incline_push_up', name: 'Flexiones inclinadas (manos en mesa, encimera o pared)', primary: ['chest'], secondary: ['triceps', 'delts_front'],
+    category: 'compound', pattern: 'horizontal_press', equipment: 'bodyweight', increment: 0, failureSafe: true, fatigue: 1, difficulty: 1,
+    repRange: [8, 20], loadNote: 'Sin carga externa: cuanto más bajo el apoyo, más difícil',
+    progressionHint: 'apoyo más bajo: pared → encimera → mesa → silla → suelo',
+    cues: ['Cuerpo recto de cabeza a talones', 'Pecho hacia el borde del apoyo', 'Codos a unos 45° del cuerpo'],
+  },
+  {
+    id: 'knee_push_up', name: 'Flexiones con rodillas apoyadas', primary: ['chest'], secondary: ['triceps', 'delts_front'],
+    category: 'compound', pattern: 'horizontal_press', equipment: 'bodyweight', increment: 0, failureSafe: true, fatigue: 1, difficulty: 1,
+    repRange: [8, 20], loadNote: 'Sin carga externa',
+    progressionHint: 'más lento al bajar o pasar a flexiones completas',
+    cues: ['Rodillas, cadera y hombros alineados', 'Bajar hasta casi tocar el suelo con el pecho'],
+  },
+  {
+    id: 'pike_push_up', name: 'Flexiones en pica (hombros)', primary: ['delts_front'], secondary: ['triceps', 'delts_side'],
+    category: 'compound', pattern: 'vertical_press', equipment: 'bodyweight', increment: 0, failureSafe: true, fatigue: 1, difficulty: 3,
+    repRange: [6, 15], loadNote: 'Sin carga externa',
+    progressionHint: 'pies elevados en una silla o escalón',
+    cues: ['Cadera alta formando una V invertida', 'Bajar la cabeza entre las manos'],
+  },
+  {
+    id: 'chair_dips', name: 'Fondos en silla', primary: ['triceps'], secondary: ['chest', 'delts_front'],
+    category: 'compound', pattern: 'dip', equipment: 'household', increment: 0, failureSafe: false, fatigue: 1,
+    repRange: [8, 20], loadNote: 'Silla firme contra la pared; sin carga externa',
+    progressionHint: 'piernas más estiradas o pies sobre otra silla',
+    cues: ['Silla apoyada contra la pared para que no se mueva', 'Bajar solo hasta donde el hombro esté cómodo', 'Codos hacia atrás, no abiertos'],
+  },
+  {
+    id: 'table_row', name: 'Remo invertido bajo una mesa firme', primary: ['back'], secondary: ['biceps', 'delts_rear'],
+    category: 'compound', pattern: 'horizontal_pull', equipment: 'household', increment: 0, failureSafe: true, fatigue: 1,
+    repRange: [6, 15], loadNote: 'Solo con una mesa muy estable; sin carga externa',
+    progressionHint: 'piernas estiradas en lugar de rodillas flexionadas',
+    cues: ['Comprueba que la mesa no se vuelque con tu peso', 'Cuerpo rígido, pecho hacia el borde', 'Bajar con control'],
+  },
+  {
+    id: 'towel_row', name: 'Remo con toalla en una puerta', primary: ['back'], secondary: ['biceps', 'delts_rear'],
+    category: 'compound', pattern: 'horizontal_pull', equipment: 'household', increment: 0, failureSafe: true, fatigue: 1, difficulty: 1,
+    repRange: [8, 15], loadNote: 'Toalla alrededor de los dos pomos; sin carga externa',
+    progressionHint: 'pies más cerca de la puerta (cuerpo más inclinado)',
+    cues: ['Puerta cerrada y tirando hacia el lado en que se abre hacia ti', 'Cuerpo recto, codos hacia las costillas'],
+  },
+  {
+    id: 'backpack_row', name: 'Remo inclinado con mochila', primary: ['back'], secondary: ['biceps', 'delts_rear'],
+    category: 'compound', pattern: 'horizontal_pull', equipment: 'household', increment: 1, failureSafe: true, fatigue: 1, difficulty: 1,
+    repRange: [10, 20], loadNote: 'kg aproximados de la mochila (libros o botellas)',
+    cues: ['Inclinado con la espalda recta, rodillas un poco flexionadas', 'Llevar la mochila hacia el ombligo'],
+  },
+  {
+    id: 'chair_squat', name: 'Sentarse y levantarse de una silla', primary: ['quads'], secondary: ['glutes', 'adductors'],
+    category: 'compound', pattern: 'squat', equipment: 'household', increment: 0, failureSafe: true, fatigue: 1, difficulty: 1,
+    repRange: [8, 15], loadNote: 'Sin carga externa',
+    progressionHint: 'sin usar las manos, más lento al bajar o silla más baja; luego sentadilla libre',
+    cues: ['Pies a la anchura de la cadera', 'Rozar la silla sin dejarse caer', 'Levantarse empujando el suelo'],
+  },
+  {
+    id: 'bw_squat', name: 'Sentadilla con peso corporal', primary: ['quads'], secondary: ['glutes', 'adductors'],
+    category: 'compound', pattern: 'squat', equipment: 'bodyweight', increment: 0, failureSafe: true, fatigue: 1,
+    repRange: [12, 25], loadNote: 'Sin carga externa',
+    progressionHint: 'bajada de 3 s y pausa abajo, o pasar a sentadilla búlgara',
+    cues: ['Rodillas en la dirección de los pies', 'Bajar tanto como permita la espalda neutra'],
+  },
+  {
+    id: 'backpack_squat', name: 'Sentadilla abrazando una mochila', primary: ['quads'], secondary: ['glutes', 'adductors'],
+    category: 'compound', pattern: 'squat', equipment: 'household', increment: 1, failureSafe: true, fatigue: 1, difficulty: 1,
+    repRange: [10, 20], loadNote: 'kg aproximados de la mochila',
+    cues: ['Mochila pegada al pecho', 'Torso erguido y bajada controlada'],
+  },
+  {
+    id: 'split_squat_bw', name: 'Zancada estática (sentadilla dividida)', primary: ['quads'], secondary: ['glutes', 'adductors'],
+    category: 'compound', pattern: 'lunge', equipment: 'bodyweight', increment: 0, failureSafe: true, fatigue: 1,
+    repRange: [8, 15], loadNote: 'Sin carga externa (repeticiones por pierna)',
+    progressionHint: 'sujetar una mochila o pasar a sentadilla búlgara con el pie en una silla',
+    cues: ['Paso largo y bajar en vertical', 'Rodilla trasera cerca del suelo'],
+  },
+  {
+    id: 'chair_bulgarian', name: 'Sentadilla búlgara con pie en una silla', primary: ['quads'], secondary: ['glutes', 'adductors'],
+    category: 'compound', pattern: 'lunge', equipment: 'household', increment: 0, failureSafe: false, fatigue: 2, lengthened: true,
+    repRange: [8, 15], loadNote: 'Sin carga externa (repeticiones por pierna)',
+    progressionHint: 'bajada más lenta o sostener una mochila',
+    cues: ['Silla firme detrás', 'Torso un poco inclinado hacia delante', 'Bajar vertical'],
+  },
+  {
+    id: 'stair_step_up', name: 'Subida a escalón o silla firme', primary: ['glutes', 'quads'], secondary: ['adductors'],
+    category: 'compound', pattern: 'lunge', equipment: 'bodyweight', increment: 0, failureSafe: false, fatigue: 1,
+    repRange: [8, 15], loadNote: 'Sin carga externa (repeticiones por pierna)',
+    progressionHint: 'escalón más alto o sostener una mochila',
+    cues: ['Empujar con la pierna de arriba', 'Bajar despacio, sin dejarse caer'],
+  },
+  {
+    id: 'glute_bridge', name: 'Puente de glúteo en el suelo', primary: ['glutes'], secondary: ['hamstrings'],
+    category: 'isolation', pattern: 'hip_thrust', equipment: 'bodyweight', increment: 0, failureSafe: true, fatigue: 1, difficulty: 1,
+    repRange: [12, 25], loadNote: 'Sin carga externa',
+    progressionHint: 'pausa de 2 s arriba, mochila sobre la cadera o a una pierna',
+    cues: ['Talones cerca de la cadera', 'Subir apretando glúteos sin arquear la zona lumbar'],
+  },
+  {
+    id: 'backpack_rdl', name: 'Peso muerto rumano con mochila o garrafas', primary: ['hamstrings'], secondary: ['glutes', 'adductors'],
+    category: 'compound', pattern: 'hinge', equipment: 'household', increment: 1, failureSafe: false, fatigue: 1, lengthened: true,
+    repRange: [10, 20], loadNote: 'kg aproximados de la mochila o garrafas',
+    cues: ['Cadera hacia atrás con la espalda recta', 'Bajar hasta sentir el estiramiento detrás del muslo'],
+  },
+  {
+    id: 'jug_lateral_raise', name: 'Elevaciones laterales con garrafas o botellas', primary: ['delts_side'], secondary: [],
+    category: 'isolation', pattern: 'lateral_raise', equipment: 'household', increment: 0.5, failureSafe: true, fatigue: 1,
+    repRange: [12, 25], loadNote: 'kg por mano (una botella de 1,5 L ≈ 1,5 kg)',
+    cues: ['Subir hacia los lados hasta la altura de los hombros', 'Sin impulso, bajar lento'],
+  },
+  {
+    id: 'jug_curl', name: 'Curl de bíceps con garrafas o mochila', primary: ['biceps'], secondary: [],
+    category: 'isolation', pattern: 'curl', equipment: 'household', increment: 0.5, failureSafe: true, fatigue: 1,
+    repRange: [10, 20], loadNote: 'kg por mano',
+    cues: ['Codos pegados al cuerpo', 'Bajar hasta estirar el brazo'],
+  },
+  {
+    id: 'jug_shrug', name: 'Encogimientos con garrafas o mochila', primary: ['traps'], secondary: [],
+    category: 'isolation', pattern: 'shrug', equipment: 'household', increment: 0.5, failureSafe: true, fatigue: 1,
+    repRange: [12, 25], loadNote: 'kg totales',
+    cues: ['Subir los hombros hacia las orejas', 'Pausa de 1 s arriba'],
+  },
+  {
+    id: 'prone_y_raise', name: 'Elevación en Y boca abajo (hombro posterior)', primary: ['delts_rear'], secondary: ['traps'],
+    category: 'isolation', pattern: 'rear_fly', equipment: 'bodyweight', increment: 0, failureSafe: true, fatigue: 1,
+    repRange: [10, 20], loadNote: 'Sin carga externa',
+    progressionHint: 'pausa de 2 s arriba o una botella pequeña en cada mano',
+    cues: ['Tumbado boca abajo, brazos en Y con los pulgares arriba', 'Elevar los brazos sin arquear la zona lumbar'],
+  },
+
+  {
+    id: 'sliding_leg_curl', name: 'Curl femoral deslizando los talones (toalla o calcetines)', primary: ['hamstrings'], secondary: ['glutes'],
+    category: 'isolation', pattern: 'knee_flexion', equipment: 'household', increment: 0, failureSafe: true, fatigue: 1,
+    repRange: [8, 15], loadNote: 'Suelo liso y toalla o calcetines bajo los talones; sin carga externa',
+    progressionHint: 'cadera más alta, bajada más lenta o a una pierna',
+    cues: ['Tumbado boca arriba con la cadera elevada', 'Llevar los talones hacia los glúteos y estirar despacio'],
+  },
+  {
+    id: 'decline_push_up', name: 'Flexiones con pies elevados (silla o escalón)', primary: ['chest'], secondary: ['triceps', 'delts_front'],
+    category: 'compound', pattern: 'incline_press', equipment: 'bodyweight', increment: 0, failureSafe: true, fatigue: 1, difficulty: 3,
+    repRange: [6, 15], loadNote: 'Sin carga externa: cuanto más altos los pies, más difícil',
+    progressionHint: 'pies más altos, bajada de 3 s o una mochila en la espalda',
+    cues: ['Cuerpo recto, sin hundir la cadera', 'Bajar hasta casi tocar el suelo con el pecho'],
+  },
   // TRX / suspensión: sin carga externa, la dificultad se ajusta con el ángulo del cuerpo.
   {
     id: 'trx_chest_press', name: 'Press de pecho en TRX', primary: ['chest'], secondary: ['triceps', 'delts_front'],
@@ -522,7 +665,7 @@ export const EXERCISES: Exercise[] = [
   },
   {
     id: 'trx_pistol', name: 'Sentadilla a una pierna asistida en TRX', primary: ['quads'], secondary: ['glutes'],
-    category: 'compound', pattern: 'squat', equipment: 'suspension', increment: 0, failureSafe: true, fatigue: 1,
+    category: 'compound', pattern: 'squat', equipment: 'suspension', increment: 0, failureSafe: true, fatigue: 1, difficulty: 3,
     repRange: [6, 12], loadNote: TRX_NOTE,
     cues: ['Usar las manos solo lo necesario', 'Bajar controlado y profundo'],
   },
@@ -555,7 +698,8 @@ export function getExercise(id: string): Exercise {
 }
 
 export function isAvailable(ex: Exercise, equipment: Equipment[]): boolean {
-  return equipment.includes(ex.equipment)
+  // El peso corporal siempre está disponible: no requiere nada.
+  return ex.equipment === 'bodyweight' || equipment.includes(ex.equipment)
 }
 
 /** Ejercicio sin carga externa medible: progresa por ángulo, variante o repeticiones. */
@@ -597,7 +741,8 @@ const DEFAULT_REST: Record<ExerciseCategory, number> = {
 
 /** Descanso entre series; quien empieza mueve cargas menores y recupera antes (30 s menos, mínimo 60 s). */
 export function restFor(ex: Exercise, experience?: Experience): number {
-  const rest = DEFAULT_REST[ex.category]
+  // Sin carga externa (peso corporal), el esfuerzo por serie es menor: basta el descanso de un aislamiento.
+  const rest = ex.increment === 0 ? DEFAULT_REST.isolation : DEFAULT_REST[ex.category]
   return experience === 'beginner' ? Math.max(60, rest - 30) : rest
 }
 

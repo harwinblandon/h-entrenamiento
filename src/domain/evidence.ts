@@ -170,6 +170,50 @@ export const EVIDENCE: EvidenceSource[] = [
     limitations: 'La app usa preguntas inspiradas en él, no el instrumento completo.',
   },
   {
+    id: 'who2020',
+    citation:
+      'Bull FC, Al-Ansari SS, Biddle S, et al. World Health Organization 2020 guidelines on physical activity and sedentary behaviour. Br J Sports Med. 2020;54(24):1451-1462.',
+    type: 'Revisión sistemática',
+    topic: 'Actividad física para la salud',
+    finding: 'Adultos: 150–300 min semanales de actividad aeróbica moderada (o 75–150 vigorosa) y fortalecimiento muscular al menos 2 días por semana; cualquier cantidad es mejor que nada.',
+    appliesTo: 'Meta semanal de caminata o cardio y recomendación de fuerza 2–3 días.',
+    confidence: 'alta',
+    limitations: 'Recomendaciones poblacionales: las necesidades individuales varían.',
+  },
+  {
+    id: 'paluch2022steps',
+    citation:
+      'Paluch AE, Bajpai S, Bassett DR, et al. Daily steps and all-cause mortality: a meta-analysis of 15 international cohorts. Lancet Public Health. 2022;7(3):e219-e228.',
+    type: 'Metaanálisis',
+    topic: 'Pasos diarios',
+    finding: 'Más pasos diarios se asocian con menor mortalidad; el beneficio se estabiliza en torno a 6.000–8.000 pasos en mayores de 60 años y 8.000–10.000 en menores.',
+    appliesTo: 'Meta orientativa de pasos en el Panel.',
+    confidence: 'moderada',
+    limitations: 'Estudios observacionales: muestran asociación, no causalidad.',
+  },
+  {
+    id: 'acsm2009progression',
+    citation:
+      'American College of Sports Medicine. American College of Sports Medicine position stand. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708.',
+    type: 'Revisión narrativa',
+    topic: 'Principiantes',
+    finding: 'Para empezar: 2–3 días por semana de cuerpo completo, ejercicios multiarticulares, 1–3 series de 8–12 repeticiones y progresión gradual.',
+    appliesTo: 'Planes para principiantes: cuerpo completo, multiarticulares y pocas series de aislamiento.',
+    confidence: 'moderada',
+    limitations: 'Posicionamiento de 2009; la evidencia posterior amplía los rangos de repeticiones útiles.',
+  },
+  {
+    id: 'kikuchi2017pushup',
+    citation:
+      'Kikuchi N, Nakazato K. Low-load bench press and push-up induce similar muscle hypertrophy and strength gain. J Exerc Sci Fit. 2017;15(1):37-42.',
+    type: 'Ensayo controlado',
+    topic: 'Peso corporal',
+    finding: 'Las flexiones llevadas cerca del fallo produjeron un crecimiento muscular similar al press de banca con carga baja.',
+    appliesTo: 'Planes en casa con peso corporal y objetos: efectivos si cada serie se acerca al fallo.',
+    confidence: 'moderada',
+    limitations: 'Muestra pequeña de hombres jóvenes sin entrenamiento previo.',
+  },
+  {
     id: 'coleman2024deload',
     citation:
       'Coleman M, Burke R, Augustin F, et al. Gaining more from doing less? The effects of a one-week deload period during supervised resistance training on muscular adaptations. PeerJ. 2024;12:e16777.',

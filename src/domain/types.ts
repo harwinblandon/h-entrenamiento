@@ -2,7 +2,18 @@ export type Sex = 'male' | 'female'
 export type Experience = 'beginner' | 'intermediate' | 'advanced'
 export type Goal = 'gain' | 'maintain' | 'cut'
 export type JobActivity = 'sedentary' | 'moderate' | 'active'
-export const EQUIPMENT = ['barbell', 'dumbbell', 'machine', 'cable', 'smith', 'suspension', 'bodyweight'] as const
+export const EQUIPMENT = [
+  'barbell',
+  'dumbbell',
+  'machine',
+  'cable',
+  'smith',
+  'pullup_bar',
+  'dip_station',
+  'suspension',
+  'household',
+  'bodyweight',
+] as const
 export type Equipment = (typeof EQUIPMENT)[number]
 export type LifeStage = 'none' | 'menstrual_tracking' | 'menopause' | 'pregnancy' | 'postpartum'
 export type ExerciseCategory = 'compound' | 'machine' | 'isolation'
@@ -125,6 +136,8 @@ export interface Exercise {
   lengthened?: boolean
   /** Flexión de tronco (crunch, elevaciones de piernas): se evita en embarazo y posparto. */
   trunkFlexion?: boolean
+  /** Dificultad técnica o de fuerza mínima: 1 apta para empezar, 2 intermedia (por defecto), 3 exigente. */
+  difficulty?: 1 | 2 | 3
   /** Con mancuernas la carga se queda corta para quien ya es fuerte (se evita en intermedios y avanzados con barra). */
   loadLimited?: boolean
   /** Máquina asistida: más kilos = más fácil; progresa reduciendo la asistencia. */
@@ -250,4 +263,8 @@ export interface BodyLog {
   date: string
   weightKg?: number
   waistCm?: number
+  /** Minutos de caminata o cardio moderado del día. */
+  activityMinutes?: number
+  /** Pasos del día (del reloj o del celular). */
+  steps?: number
 }

@@ -5,7 +5,7 @@ import { activePlan, db } from '../../db/db'
 import { EXPERIENCE_LABELS, GOAL_LABELS } from '../../domain/labels'
 import { computeNutrition } from '../../domain/nutrition'
 import { evaluateSafety } from '../../domain/safety'
-import { nextSession, todayISO, WEIGHINS_TO_CONFIRM, weightStatus, weightTrend } from '../../domain/schedule'
+import { activitySummary, nextSession, todayISO, WEEKLY_ACTIVITY_GOAL, WEIGHINS_TO_CONFIRM, weightStatus, weightTrend } from '../../domain/schedule'
 import type { BodyLog, Plan, Profile, WorkoutLog } from '../../domain/types'
 import { APP_NAME, LOGO_URL } from '../../brand'
 import { useActiveProfile } from '../activeProfile'
@@ -92,6 +92,68 @@ function FirstSteps({ profile, plan, workouts, logs }: { profile: Profile; plan:
   )
 }
 
+/** Caminata, cardio y pasos del día, con la semana frente a las recomendaciones (OMS y estudios de pasos). */
+function ActivityCard({ profile, logs }: { profile: Profile; logs: BodyLog[] }) {
+  const today = todayISO()
+  const todays = logs.find((l) => l.date === today)
+  // Mientras no se escriba nada, los campos muestran lo ya registrado hoy (también si llega de otro dispositivo).
+  const [typedMinutes, setMinutes] = useState<string>()
+  const [typedSteps, setSteps] = useState<string>()
+  const minutes = typedMinutes ?? todays?.activityMinutes?.toString() ?? ''
+  const steps = typedSteps ?? todays?.steps?.toString() ?? ''
+  const s = activitySummary(logs, profile.age)
+  const pct = Math.min(100, Math.round((s.minutes / WEEKLY_ACTIVITY_GOAL) * 100))
+
+  async function save() {
+    await db.bodyLogs.put({
+      ...todays,
+      id: todays?.id ?? crypto.randomUUID(),
+      profileId: profile.id,
+      date: today,
+      activityMinutes: minutes === '' ? undefined : Number(minutes),
+      steps: steps === '' ? undefined : Number(steps),
+    })
+  }
+
+  return (
+    <div className="card stack-sm" id="actividad">
+      <h2>Actividad de la semana</h2>
+      <div className="stat">
+        <span className="label">Caminata y cardio · últimos 7 días</span>
+        <span className="value">
+          {s.minutes} / {WEEKLY_ACTIVITY_GOAL} min
+        </span>
+      </div>
+      <div className="bar" title={`${pct} % de la meta semanal`}>
+        <span style={{ width: `${pct}%` }} />
+      </div>
+      <small>
+        {s.minutes >= WEEKLY_ACTIVITY_GOAL
+          ? 'Meta semanal cumplida. Hasta 300 min siguen sumando beneficios.'
+          : `Te faltan ${WEEKLY_ACTIVITY_GOAL - s.minutes} min: por ejemplo, ${Math.ceil((WEEKLY_ACTIVITY_GOAL - s.minutes) / 30)} caminata(s) de 30 min a paso ligero (puedes hablar, pero no cantar).`}
+      </small>
+      <div className="stat">
+        <span className="label">Pasos · promedio de la semana</span>
+        <span className="value">{s.stepsAvg !== undefined ? s.stepsAvg.toLocaleString('es') : '—'}</span>
+        <span className="sub">Meta orientativa: {s.stepsGoal.toLocaleString('es')} pasos al día</span>
+      </div>
+      <div className="grid-tight">
+        <label className="field">
+          Minutos de hoy
+          <input type="number" inputMode="numeric" min={0} value={minutes} onChange={(e) => setMinutes(e.target.value)} />
+        </label>
+        <label className="field">
+          Pasos de hoy
+          <input type="number" inputMode="numeric" min={0} step={100} value={steps} onChange={(e) => setSteps(e.target.value)} />
+        </label>
+      </div>
+      <button className="btn" onClick={save} disabled={minutes === '' && steps === ''}>
+        {todays?.activityMinutes !== undefined || todays?.steps !== undefined ? 'Actualizar actividad de hoy' : 'Guardar actividad de hoy'}
+      </button>
+    </div>
+  )
+}
+
 function BodyLogCard({ profile, logs }: { profile: Profile; logs: BodyLog[] }) {
   const today = todayISO()
   const todays = logs.find((l) => l.date === today)
@@ -102,6 +164,7 @@ function BodyLogCard({ profile, logs }: { profile: Profile; logs: BodyLog[] }) {
 
   async function save() {
     await db.bodyLogs.put({
+      ...todays,
       id: todays?.id ?? crypto.randomUUID(),
       profileId: profile.id,
       date: today,
@@ -133,7 +196,7 @@ function BodyLogCard({ profile, logs }: { profile: Profile; logs: BodyLog[] }) {
         </label>
       </div>
       <button className="btn" onClick={save} disabled={weight === '' && waist === ''}>
-        {todays ? 'Actualizar registro de hoy' : 'Guardar registro de hoy'}
+        {todays?.weightKg !== undefined || todays?.waistCm !== undefined ? 'Actualizar registro de hoy' : 'Guardar registro de hoy'}
       </button>
       {recent.length > 0 && (
         <table>
@@ -267,6 +330,8 @@ export function Dashboard() {
         </div>
 
         <BodyLogCard key={active.id} profile={active} logs={bodyLogs} />
+
+        <ActivityCard key={`act-${active.id}`} profile={active} logs={bodyLogs} />
 
         {!nutrition.hidden && (
           <div className="card stack-sm">

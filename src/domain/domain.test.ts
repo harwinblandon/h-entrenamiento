@@ -11,7 +11,7 @@ import { planChanges, planSnapshot } from './planChanges'
 import { reviewPlan } from './planReview'
 import { emptySafety, evaluateSafety } from './safety'
 import { adherence, exerciseHistory, personalRecords, weeklyMuscleSets, weightSeries } from './progress'
-import { nextSession, weightStatus } from './schedule'
+import { activitySummary, nextSession, weightStatus } from './schedule'
 import type { LoggedExercise, LoggedSet, PlannedSession, Profile, WorkoutLog } from './types'
 import { MUSCLES } from './types'
 
@@ -439,6 +439,47 @@ describe('revisión del plan', () => {
   it('avisa del desequilibrio entre empujes y tracciones', () => {
     const sessions = [{ name: 'Día 1', focus: '', estimatedMinutes: 0, exercises: [ex('bench_press', 5), ex('incline_db_press', 5), ex('lat_pulldown', 2)] }]
     expect(ids(sessions)).toContain('push-pull')
+  })
+})
+
+describe('entrenar en casa', () => {
+  const home = (o: Partial<Profile> = {}) =>
+    profile({ priorityMuscles: [], experience: 'beginner', daysPerWeek: 3, sessionMinutes: 45, equipment: ['bodyweight', 'household'], ...o })
+
+  it('sin implementos usa solo peso corporal y objetos de casa, sin barra ni paralelas', () => {
+    const exs = generatePlan(home()).sessions.flatMap((s) => s.exercises.map((e) => getExercise(e.exerciseId)))
+    expect(exs.every((e) => e.equipment === 'bodyweight' || e.equipment === 'household')).toBe(true)
+    expect(exs.map((e) => e.id)).not.toContain('pull_up')
+    expect(exs.map((e) => e.id)).not.toContain('dips')
+  })
+
+  it('a quien empieza le da versiones accesibles y nada exigente', () => {
+    const exs = generatePlan(home()).sessions.flatMap((s) => s.exercises.map((e) => getExercise(e.exerciseId)))
+    expect(exs.some((e) => e.difficulty === 3)).toBe(false)
+    expect(exs.filter((e) => e.difficulty === 1).length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('cabe en 45 minutos y trabaja los grupos principales', () => {
+    const plan = generatePlan(home())
+    for (const s of plan.sessions) expect(s.estimatedMinutes).toBeLessThanOrEqual(45)
+    for (const m of ['chest', 'back', 'quads', 'hamstrings', 'glutes'] as const) expect(plan.weeklyVolume[m].direct).toBeGreaterThan(0)
+  })
+
+  it('a un avanzado no le da las versiones más fáciles si hay alternativas', () => {
+    const exs = generatePlan(home({ experience: 'advanced' })).sessions.flatMap((s) => s.exercises.map((e) => e.exerciseId))
+    expect(exs).not.toContain('incline_push_up')
+    expect(exs).not.toContain('chair_squat')
+  })
+
+  it('resume la actividad de la semana', () => {
+    const today = new Date(2026, 9, 30)
+    const logs = [
+      { id: '1', profileId: 'p', date: '2026-10-30', activityMinutes: 40, steps: 9000 },
+      { id: '2', profileId: 'p', date: '2026-10-27', activityMinutes: 30, steps: 7000 },
+      { id: '3', profileId: 'p', date: '2026-10-20', activityMinutes: 60 },
+    ]
+    expect(activitySummary(logs, 33, today)).toMatchObject({ minutes: 70, stepsAvg: 8000, stepsGoal: 8000 })
+    expect(activitySummary(logs, 65, today).stepsGoal).toBe(7000)
   })
 })
 

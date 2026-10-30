@@ -28,7 +28,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore'
 import { liveQuery, type Subscription } from 'dexie'
-import { clearLocalData, db } from './db'
+import { clearLocalData, db, migrateProfile } from './db'
 import { decideRemote, markRemoteDelete, REMOTE, stripSyncFields, SYNCED_TABLES, type SyncedTable } from './syncMiddleware'
 
 export type SyncState = 'signed-out' | 'syncing' | 'synced' | 'offline' | 'error'
@@ -257,7 +257,9 @@ async function applyRemote(snap: QueryDocumentSnapshot) {
   const local = (await table.get(r.id)) as Record<string, unknown> | undefined
   const decision = decideRemote(local && { v: Number(local._v ?? 0), dirty: Number(local._dirty ?? 0) }, r)
   if (decision === 'apply') {
-    await table.put({ ...JSON.parse(r.json), _v: r.v, _dirty: 0, [REMOTE]: true })
+    const data = JSON.parse(r.json)
+    if (r.table === 'profiles') migrateProfile(data)
+    await table.put({ ...data, _v: r.v, _dirty: 0, [REMOTE]: true })
   } else if (decision === 'delete') {
     markRemoteDelete(r.table, r.id)
     await table.delete(r.id)

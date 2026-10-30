@@ -227,9 +227,10 @@ export function weeklyTargets(profile: Profile): Record<Muscle, number> {
   const targets = {} as Record<Muscle, number>
   for (const m of MUSCLES) {
     const priority = profile.priorityMuscles.includes(m)
+    const beginnerFactor = profile.experience === 'beginner' && !priority ? (BEGINNER_SMALL_MUSCLES[m] ?? 1) : 1
     // Con énfasis en tren inferior, el tren superior no prioritario parte del mínimo del rango.
     const muscleBase = lowerEmphasis && !priority && !LOWER_BODY.includes(m) && m !== 'abs' ? range.min : base
-    targets[m] = Math.round(muscleBase * muscleFactor(m, priority)) + (priority ? bonus : 0)
+    targets[m] = Math.round(muscleBase * muscleFactor(m, priority) * beginnerFactor) + (priority ? bonus : 0)
     if (muscleFactor(m, priority) === 0) targets[m] = 0
   }
   // Ajuste elegido por la persona: «menos» ≈ 60 % del objetivo; «no entrenar» = sin trabajo directo.
@@ -250,6 +251,25 @@ function muscleFactor(m: Muscle, priority: boolean): number {
   if (m === 'delts_front') return 0.6
   if (m === 'adductors') return 0.5
   return MUSCLE_FACTOR[m]
+}
+
+const DIFFICULTY_SCORE: Record<Experience, Record<1 | 2 | 3, number>> = {
+  beginner: { 1: 8, 2: 0, 3: -12 },
+  intermediate: { 1: -2, 2: 2, 3: 0 },
+  advanced: { 1: -25, 2: 0, 3: 2 }, // mejor repetir un ejercicio exigente que bajar a uno fácil por variar
+}
+
+/**
+ * Al empezar, los multiarticulares bastan para brazos, trapecio, hombro posterior y pantorrilla:
+ * menos aislamientos y más tiempo para lo básico (ACSM: programas de cuerpo completo con multiarticulares).
+ */
+const BEGINNER_SMALL_MUSCLES: Partial<Record<Muscle, number>> = {
+  biceps: 0.5,
+  triceps: 0.5,
+  traps: 0.5,
+  delts_rear: 0.5,
+  calves: 0.5,
+  delts_side: 0.75,
 }
 
 const CATEGORY_RANK: Record<ExerciseCategory, number> = { compound: 0, machine: 10, isolation: 20 }
@@ -300,8 +320,8 @@ function chooseExercise(m: Muscle, slot: number, session: SessionState, ctx: Con
     // Preferir ejercicios que trabajan el músculo estirado y los específicos de ese músculo.
     if (e.lengthened) score += 4
     if (e.primary.length === 1) score += 3
-    // Quien empieza suele necesitar asistencia en las dominadas.
-    if (profile.experience === 'beginner' && e.id === 'pull_up') score -= 8
+    // Variante adecuada al nivel: quien empieza, las regresiones; quien es avanzado, las exigentes.
+    score += DIFFICULTY_SCORE[profile.experience][e.difficulty ?? 2]
     if (pregnancy && e.fatigue === 3) score -= 20
     // Evitar que un ejercicio para otro músculo trabaje de lleno uno que la persona decidió no entrenar.
     if (e.primary.some((x) => x !== m && profile.muscleEmphasis?.[x] === 'none')) score -= 30
@@ -361,7 +381,8 @@ export function estimateMinutes(exercises: PlannedExercise[]): number {
     const ex = getExercise(pe.exerciseId)
     sec += 60 // preparación del ejercicio
     // Aproximaciones: el primer compuesto de la sesión necesita más; luego basta con 1–2 series.
-    if (!warmed.has(pe.muscle) && ex.category !== 'isolation') {
+    // Las series de aproximación solo hacen falta con carga externa.
+    if (!warmed.has(pe.muscle) && ex.category !== 'isolation' && ex.increment > 0) {
       sec += ex.category === 'compound' && firstCompound ? 240 : 120
       if (ex.category === 'compound') firstCompound = false
     }
@@ -675,6 +696,35 @@ function explainPlan(profile: Profile, split: Split): Explanation[] {
       sourceIds: ['watson2018liftmor'],
     })
   }
+  const loaded = profile.equipment.some((e) => e === 'barbell' || e === 'dumbbell' || e === 'machine' || e === 'cable')
+  if (!loaded) {
+    out.push({
+      title: 'Entrenar en casa',
+      text:
+        'Con peso corporal y objetos de casa se gana músculo y fuerza si cada serie llega cerca del fallo (te quedan 1–3 ' +
+        'repeticiones). Cuando llegues al tope del rango, la app te indicará la siguiente variante más difícil.',
+      confidence: 'moderada',
+      sourceIds: ['kikuchi2017pushup', 'schoenfeld2021loading'],
+    })
+  }
+  if (profile.experience === 'beginner') {
+    out.push({
+      title: 'Empezar con lo básico',
+      text:
+        'Cuerpo completo con ejercicios multiarticulares, pocas series y versiones accesibles. Los brazos, hombros y ' +
+        'pantorrillas reciben trabajo indirecto suficiente al principio, así que hay pocos aislamientos.',
+      confidence: 'moderada',
+      sourceIds: ['acsm2009progression'],
+    })
+  }
+  out.push({
+    title: 'Actividad aeróbica',
+    text:
+      'Además de la fuerza, suma 150–300 min por semana de actividad moderada, como caminar a paso ligero (puedes ' +
+      'hablar, pero no cantar). Una cancha, el parque o subir escaleras sirven. Regístrala en el Panel.',
+    confidence: 'alta',
+    sourceIds: ['who2020', 'paluch2022steps'],
+  })
   if (profile.priorityMuscles.length > 0) {
     out.push({
       title: 'Músculos prioritarios',

@@ -35,14 +35,21 @@ db.version(1).stores({
 })
 
 const LEGACY_EQUIPMENT: Record<string, Equipment[]> = {
-  full_gym: ['barbell', 'dumbbell', 'machine', 'cable', 'smith', 'bodyweight'],
-  basic_gym: ['barbell', 'dumbbell', 'cable', 'bodyweight'],
+  full_gym: ['barbell', 'dumbbell', 'machine', 'cable', 'smith', 'pullup_bar', 'dip_station', 'bodyweight'],
+  basic_gym: ['barbell', 'dumbbell', 'cable', 'pullup_bar', 'dip_station', 'bodyweight'],
   home: ['dumbbell', 'bodyweight'],
 }
 
+const GYM_EQUIPMENT: Equipment[] = ['barbell', 'machine', 'cable', 'smith']
+
 /** Convierte perfiles de versiones anteriores (también de respaldos importados) al formato actual. */
-function migrateProfile(p: Record<string, unknown>) {
+export function migrateProfile(p: Record<string, unknown>) {
   if (typeof p.equipment === 'string') p.equipment = LEGACY_EQUIPMENT[p.equipment] ?? LEGACY_EQUIPMENT.full_gym
+  // Antes «peso corporal» incluía barra de dominadas y paralelas; en un gimnasio se conservan.
+  const eq = p.equipment as Equipment[]
+  if (eq.includes('bodyweight') && eq.some((e) => GYM_EQUIPMENT.includes(e)) && !eq.includes('pullup_bar')) {
+    p.equipment = [...eq, 'pullup_bar', 'dip_station']
+  }
   if (typeof p.supplements === 'string') {
     p.supplementsNotes = p.supplements
     p.supplements = []
@@ -80,6 +87,21 @@ db.version(3)
         })
     }
   })
+
+// v4: barra de dominadas y paralelas separadas del peso corporal.
+db.version(4)
+  .stores({})
+  .upgrade((tx) =>
+    tx
+      .table('profiles')
+      .toCollection()
+      .modify((p: Record<string, unknown>) => {
+        const before = JSON.stringify(p.equipment)
+        migrateProfile(p)
+        // Solo los perfiles que cambian quedan pendientes de subir; el resto se escribe tal cual.
+        if (JSON.stringify(p.equipment) === before) p[REMOTE] = true
+      }),
+  )
 
 /** Borra todos los datos locales (al cerrar sesión: siguen en la nube). */
 export async function clearLocalData() {

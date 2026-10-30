@@ -122,6 +122,34 @@ export function weightStatus(logs: BodyLog[], profileWeight: number, today = new
   return { weightKg: profileWeight, source: 'profile', recentCount, confirmed }
 }
 
+/** Meta semanal de actividad aeróbica moderada (OMS 2020: 150–300 min). */
+export const WEEKLY_ACTIVITY_GOAL = 150
+
+export interface ActivitySummary {
+  /** Minutos de los últimos 7 días (incluido hoy). */
+  minutes: number
+  /** Promedio de pasos en los días con registro de los últimos 7. */
+  stepsAvg?: number
+  daysWithSteps: number
+  /** Meta de pasos según la edad (Paluch 2022: el beneficio se estabiliza antes en mayores de 60). */
+  stepsGoal: number
+}
+
+export function activitySummary(logs: BodyLog[], age: number, today = new Date()): ActivitySummary {
+  const t = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
+  const week = logs.filter((l) => {
+    const d = (t - Date.parse(l.date)) / DAY
+    return d >= 0 && d < 7
+  })
+  const steps = week.map((l) => l.steps).filter((s): s is number => s !== undefined && s > 0)
+  return {
+    minutes: week.reduce((n, l) => n + (l.activityMinutes ?? 0), 0),
+    stepsAvg: steps.length ? Math.round(steps.reduce((a, b) => a + b, 0) / steps.length) : undefined,
+    daysWithSteps: steps.length,
+    stepsGoal: age >= 60 ? 7000 : 8000,
+  }
+}
+
 export function latestWeight(logs: BodyLog[]): number | undefined {
   return [...logs].filter((l) => l.weightKg !== undefined).sort((a, b) => b.date.localeCompare(a.date))[0]?.weightKg
 }

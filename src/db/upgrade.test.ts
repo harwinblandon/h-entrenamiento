@@ -11,6 +11,8 @@ describe('migración a la versión con sincronización', () => {
     await old.open()
     await old.table('profiles').put({ id: 'p1', name: 'H', equipment: ['barbell'] })
     await old.table('bodyLogs').put({ id: 'b1', profileId: 'p1', date: '2026-10-20', weightKg: 76 })
+    await old.table('profiles').put({ id: 'gym', name: 'Gimnasio', equipment: ['barbell', 'dumbbell', 'bodyweight'] })
+    await old.table('profiles').put({ id: 'casa', name: 'Casa', equipment: ['dumbbell', 'bodyweight'] })
     old.close()
 
     const { db } = await import('./db')
@@ -18,7 +20,11 @@ describe('migración a la versión con sincronización', () => {
     expect(p._v).toBe(1)
     expect(p._dirty).toBe(1)
     expect(p.__remote).toBeUndefined()
-    expect(await db.profiles.where('_dirty').equals(1).count()).toBe(1)
+    expect(await db.profiles.where('_dirty').equals(1).count()).toBe(3)
+
+    // Gimnasio: conserva barra de dominadas y paralelas. Casa: no las recibe.
+    expect((await db.profiles.get('gym'))!.equipment).toEqual(expect.arrayContaining(['pullup_bar', 'dip_station']))
+    expect((await db.profiles.get('casa'))!.equipment).toEqual(['dumbbell', 'bodyweight'])
 
     await db.profiles.update('p1', { name: 'H2' })
     const after = (await db.profiles.get('p1')) as unknown as Record<string, number>
