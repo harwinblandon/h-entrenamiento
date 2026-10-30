@@ -3,34 +3,39 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email == 'CORREO_DEL_ADMINISTRADOR'
+        && request.auth.token.email_verified == true;
+    }
     // Datos de entrenamiento: cada cuenta solo accede a los suyos.
     match /users/{uid}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
-    // Lista común de productos: cualquier cuenta la lee, agrega y corrige (la app guarda las versiones
-    // anteriores); nadie puede cambiar quién lo creó ni firmar con otra cuenta; borrar, solo el administrador.
+    // Lista común de productos: cualquier cuenta la lee y agrega productos nuevos; corregir,
+    // restaurar versiones y eliminar, solo el administrador.
     match /sharedFoods/{id} {
       allow read: if request.auth != null;
       allow create: if request.auth != null
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.updatedBy == request.auth.uid
         && request.resource.data.per100.kcal is number
-        && request.resource.data.versions.size() <= 10;
-      allow update: if request.auth != null
+        && request.resource.data.versions.size() == 0;
+      allow update: if isAdmin()
         && request.resource.data.createdBy == resource.data.createdBy
-        && request.resource.data.updatedBy == request.auth.uid
         && request.resource.data.per100.kcal is number
         && request.resource.data.versions.size() <= 10;
-      allow delete: if request.auth != null
-        && request.auth.token.email == 'CORREO_DEL_ADMINISTRADOR'
-        && request.auth.token.email_verified == true;
+      allow delete: if isAdmin();
+    }
+    // Reportes de errores en productos: los crea cualquier cuenta y solo el administrador los ve y cierra.
+    match /foodReports/{id} {
+      allow create: if request.auth != null && request.resource.data.by == request.auth.uid;
+      allow read, delete: if isAdmin();
     }
     // Resumen de uso por cuenta: lo escribe su dueño y solo el administrador puede leerlos todos.
     match /members/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
-      allow read: if request.auth != null
-        && request.auth.token.email == 'CORREO_DEL_ADMINISTRADOR'
-        && request.auth.token.email_verified == true;
+      allow read: if isAdmin();
     }
   }
 }

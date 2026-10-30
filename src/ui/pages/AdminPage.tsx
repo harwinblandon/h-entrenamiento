@@ -1,6 +1,11 @@
+import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
+import { db } from '../../db/db'
 import type { Member } from '../../db/syncEngine'
+import type { FoodReport } from '../../domain/types'
+import { useActiveProfile } from '../activeProfile'
 import { useSync } from '../sync'
+import { ProductForm } from './FoodDiary'
 
 const DAY = 86_400_000
 
@@ -84,6 +89,8 @@ export function AdminPage() {
         </div>
       </div>
 
+      <FoodReports />
+
       <div className="card stack-sm">
         <h2>Cuentas</h2>
         {members && members.length === 0 && <p className="muted">Todavía no hay cuentas registradas.</p>}
@@ -132,6 +139,93 @@ export function AdminPage() {
           .
         </small>
       </div>
+    </div>
+  )
+}
+
+/** Errores reportados en la lista común de productos: el administrador corrige y marca como resuelto. */
+function FoodReports() {
+  const { engine } = useSync()
+  const { active } = useActiveProfile()
+  const [reports, setReports] = useState<FoodReport[]>()
+  const [error, setError] = useState<string>()
+  const [editing, setEditing] = useState<string>()
+  const shared = useLiveQuery(() => db.sharedFoods.toArray(), [])
+
+  async function load() {
+    if (!engine) return
+    try {
+      setReports(await engine.listFoodReports())
+      setError(undefined)
+    } catch {
+      setError('No se pudieron cargar los reportes: revisa que las reglas de Firestore incluyan foodReports.')
+    }
+  }
+
+  useEffect(() => {
+    void load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [engine])
+
+  async function resolve(id: string) {
+    await engine?.resolveFoodReport(id)
+    setEditing(undefined)
+    await load()
+  }
+
+  const fmt = (ms: number) => new Date(ms).toLocaleDateString('es', { day: 'numeric', month: 'short' })
+
+  return (
+    <div className="card stack-sm">
+      <div className="spread">
+        <h2>Reportes de productos</h2>
+        <span className="muted" style={{ fontSize: '0.85rem' }}>
+          {shared?.length ?? 0} productos en la lista común
+        </span>
+      </div>
+      {error && <div className="alert warn">{error}</div>}
+      {reports && reports.length === 0 && <p className="muted">No hay errores reportados.</p>}
+      {reports?.map((r) => {
+        const item = shared?.find((x) => x.id === r.foodId)
+        return (
+          <div key={r.id} className="stack-sm fat-box">
+            <div className="spread">
+              <strong>{r.foodName}</strong>
+              <span className="muted" style={{ fontSize: '0.8rem' }}>
+                {r.byName} · {fmt(r.at)}
+              </span>
+            </div>
+            <span>«{r.message}»</span>
+            {item ? (
+              <span className="muted" style={{ fontSize: '0.8rem' }}>
+                Ahora: {Math.round(item.per100.kcal)} kcal, P {item.per100.p} · G {item.per100.f} · C {item.per100.c} por 100 g
+                {item.portion && ` · porción ${item.portion.label} (${item.portion.grams} g)`}
+              </span>
+            ) : (
+              <span className="muted">El producto ya no está en la lista.</span>
+            )}
+            {editing === r.id && item && active ? (
+              <ProductForm
+                profile={active}
+                editing={{ kind: 'shared', item }}
+                onSaved={() => void resolve(r.id)}
+                onCancel={() => setEditing(undefined)}
+              />
+            ) : (
+              <div className="row">
+                {item && (
+                  <button type="button" className="btn small primary" onClick={() => setEditing(r.id)}>
+                    Corregir
+                  </button>
+                )}
+                <button type="button" className="btn small" onClick={() => void resolve(r.id)}>
+                  Marcar como resuelto
+                </button>
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

@@ -399,11 +399,11 @@ function EntryEditor({
 
 // --- Producto con tabla nutricional (crear o corregir) ---------------------------------------------
 
-type ProductTarget = { kind: 'shared'; item: SharedFood } | { kind: 'custom'; item: CustomFood }
+export type ProductTarget = { kind: 'shared'; item: SharedFood } | { kind: 'custom'; item: CustomFood }
 
 const str = (n: number | undefined) => (n === undefined ? '' : String(Math.round(n * 10) / 10))
 
-function ProductForm({
+export function ProductForm({
   profile,
   initial,
   origin,
@@ -492,7 +492,7 @@ function ProductForm({
           ? 'Compara con la etiqueta y corrige lo que esté mal. La versión anterior queda guardada por si hay que volver a ella.'
           : 'Copia la tabla nutricional del empaque (sirve para marcas de tienda como D1 o Ara).'}{' '}
         {shared
-          ? 'Queda en la lista común del grupo: todos lo encontrarán al buscar o escanear.'
+          ? 'Queda en la lista común del grupo: todos lo encontrarán al buscar o escanear. Después solo el administrador puede corregirlo, así que revisa bien la etiqueta.'
           : 'Queda guardado solo para ti (inicia sesión para compartirlo con el grupo).'}
       </p>
       <div className="grid-tight">
@@ -553,11 +553,18 @@ function ProductForm({
   )
 }
 
-/** Quién agregó y corrigió un producto del grupo, con sus versiones anteriores para restaurar. */
+/**
+ * Quién agregó y corrigió un producto del grupo. El administrador corrige, restaura versiones y
+ * elimina; el resto puede reportar un error para que lo revise.
+ */
 function ProductInfo({ item, profile, onEdit }: { item: SharedFood; profile: Profile; onEdit: () => void }) {
   const { engine, status } = useSync()
+  const admin = !!status.isAdmin
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [reporting, setReporting] = useState(false)
+  const [message, setMessage] = useState('')
+  const [sent, setSent] = useState(false)
   const fmt = (ms: number) => new Date(ms).toLocaleDateString('es', { day: 'numeric', month: 'short' })
 
   async function restore(ver: SharedFoodVersion) {
@@ -572,22 +579,35 @@ function ProductInfo({ item, profile, onEdit }: { item: SharedFood; profile: Pro
     setBusy(false)
   }
 
+  async function report() {
+    if (!engine) return
+    setBusy(true)
+    try {
+      await engine.reportSharedFood(item, message.trim(), profile.name)
+      setSent(true)
+      setReporting(false)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : String(e))
+    }
+    setBusy(false)
+  }
+
   return (
     <div className="stack-sm" style={{ fontSize: '0.8rem' }}>
       <span className="muted">
         Producto del grupo{item.source === 'off' ? ' (datos de Open Food Facts)' : ''} · agregado por {item.createdByName}
         {item.versions.length > 0 && ` · corregido por ${item.updatedByName} el ${fmt(item.updatedAt)}`}
       </span>
-      <div className="row">
-        <button type="button" className="btn small" onClick={onEdit}>
-          Corregir datos
-        </button>
-        {item.versions.length > 0 && (
-          <button type="button" className="btn small" onClick={() => setOpen(!open)}>
-            Versiones anteriores ({item.versions.length})
+      {admin ? (
+        <div className="row">
+          <button type="button" className="btn small" onClick={onEdit}>
+            Corregir datos
           </button>
-        )}
-        {status.isAdmin && (
+          {item.versions.length > 0 && (
+            <button type="button" className="btn small" onClick={() => setOpen(!open)}>
+              Versiones anteriores ({item.versions.length})
+            </button>
+          )}
           <button
             type="button"
             className="btn small danger"
@@ -595,9 +615,37 @@ function ProductInfo({ item, profile, onEdit }: { item: SharedFood; profile: Pro
           >
             Eliminar de la lista
           </button>
-        )}
-      </div>
-      {open &&
+        </div>
+      ) : sent ? (
+        <span className="badge accent" style={{ alignSelf: 'flex-start' }}>
+          Reporte enviado: el administrador lo revisará
+        </span>
+      ) : reporting ? (
+        <div className="stack-sm fat-box">
+          <label className="field">
+            ¿Qué está mal?
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Ej.: la etiqueta dice 120 kcal por porción de 30 g, no 140."
+            />
+          </label>
+          <div className="row" style={{ justifyContent: 'flex-end' }}>
+            <button type="button" className="btn small" onClick={() => setReporting(false)}>
+              Cancelar
+            </button>
+            <button type="button" className="btn small primary" disabled={busy || message.trim().length < 5} onClick={report}>
+              Enviar reporte
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button type="button" className="btn small" style={{ alignSelf: 'flex-start' }} onClick={() => setReporting(true)}>
+          Reportar un error
+        </button>
+      )}
+      {admin &&
+        open &&
         item.versions.map((ver) => (
           <div key={ver.at} className="spread fat-box">
             <span>

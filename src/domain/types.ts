@@ -336,7 +336,7 @@ export interface SharedFoodVersion extends FoodLabel {
   at: number
 }
 
-/** Producto de la lista común del grupo (Firestore sharedFoods/{id}); cualquiera puede corregirlo. */
+/** Producto de la lista común del grupo (Firestore sharedFoods/{id}); solo el administrador lo corrige. */
 export interface SharedFood extends FoodLabel {
   id: string
   /** De dónde salieron los datos: etiqueta copiada a mano u Open Food Facts. */
@@ -349,4 +349,15 @@ export interface SharedFood extends FoodLabel {
   updatedAt: number
   /** Versiones anteriores, de la más reciente a la más antigua (máximo 10). */
   versions: SharedFoodVersion[]
+}
+
+/** Error reportado en un producto de la lista común, para que el administrador lo revise. */
+export interface FoodReport {
+  id: string
+  foodId: string
+  foodName: string
+  message: string
+  by: string
+  byName: string
+  at: number
 }

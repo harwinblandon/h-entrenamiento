@@ -28,7 +28,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore'
 import { liveQuery, type Subscription } from 'dexie'
-import type { FoodLabel, SharedFood, SharedFoodVersion } from '../domain/types'
+import type { FoodLabel, FoodReport, SharedFood, SharedFoodVersion } from '../domain/types'
 import { clearLocalData, db, migrateProfile } from './db'
 import { decideRemote, markRemoteDelete, REMOTE, stripSyncFields, SYNCED_TABLES, type SyncedTable } from './syncMiddleware'
 
@@ -483,8 +483,8 @@ const MAX_VERSIONS = 10
 const clean = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T
 
 /**
- * Crea o corrige un producto de la lista común. Al corregir, la versión anterior queda guardada para
- * poder restaurarla. Con código de barras, el código es el id (un producto por código).
+ * Crea un producto de la lista común o lo corrige (corregir, solo el administrador). Al corregir, la
+ * versión anterior queda guardada para poder restaurarla. Con código de barras, el código es el id.
  */
 export async function saveSharedFood(label: FoodLabel, opts: { id?: string; source: SharedFood['source']; byName: string }): Promise<SharedFood> {
   if (!user) throw new Error('Inicia sesión para guardar en la lista común.')
@@ -516,13 +516,32 @@ export async function saveSharedFood(label: FoodLabel, opts: { id?: string; sour
     const code = (e as { code?: string })?.code
     throw new Error(
       code === 'permission-denied'
-        ? 'Sin permiso para guardar en la lista común: falta publicar las reglas de Firestore de productos.'
+        ? existing
+          ? 'Solo el administrador puede corregir productos de la lista común. Usa «Reportar un error».'
+          : 'Sin permiso para guardar en la lista común: falta publicar las reglas de Firestore de productos.'
         : 'No se pudo guardar el producto.',
     )
   })
   if (result === 'pending') void write.catch((e) => console.warn('No se subió el producto', e))
   await db.sharedFoods.put(item)
   return item
+}
+
+/** Reporta un error en un producto de la lista común (lo revisa el administrador). */
+export async function reportSharedFood(item: SharedFood, message: string, byName: string) {
+  if (!user) throw new Error('Inicia sesión para reportar.')
+  const report: Omit<FoodReport, 'id'> = { foodId: item.id, foodName: item.name, message, by: user.uid, byName, at: Date.now() }
+  await setDoc(doc(collection(fs, 'foodReports')), report)
+}
+
+/** Reportes pendientes (solo el administrador, según las reglas). */
+export async function listFoodReports(): Promise<FoodReport[]> {
+  const snap = await getDocs(collection(fs, 'foodReports'))
+  return snap.docs.map((d) => ({ ...(d.data() as Omit<FoodReport, 'id'>), id: d.id })).sort((a, b) => b.at - a.at)
+}
+
+export async function resolveFoodReport(id: string) {
+  await deleteDoc(doc(fs, 'foodReports', id))
 }
 
 /** Elimina un producto de la lista común (solo el administrador, según las reglas). */
