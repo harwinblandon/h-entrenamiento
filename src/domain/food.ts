@@ -228,13 +228,31 @@ export function offToLabel(p: OffProduct, barcode: string): FoodLabel | undefine
   }
 }
 
-/** Busca un código de barras en Open Food Facts (base abierta, licencia ODbL). */
-export async function fetchOpenFoodFacts(barcode: string): Promise<FoodLabel | undefined> {
+/** Nombre, marca y porción de un producto de Open Food Facts que no trae la tabla nutricional. */
+export function offToPartial(p: OffProduct, barcode: string): Partial<FoodLabel> {
+  const serving = Number(p.serving_quantity)
+  return {
+    name: (p.product_name_es || p.product_name || p.generic_name || '').trim() || undefined,
+    brand: p.brands?.split(',')[0]?.trim() || undefined,
+    barcode,
+    portion: serving > 0 ? { label: p.serving_size?.trim() || 'Porción', grams: serving } : undefined,
+  }
+}
+
+export type OffResult = { complete: true; label: FoodLabel } | { complete: false; label: Partial<FoodLabel> }
+
+/**
+ * Busca un código de barras en Open Food Facts (base abierta, licencia ODbL). Muchos productos colombianos
+ * están registrados solo con nombre y foto, sin tabla nutricional: entonces se devuelve lo que haya.
+ */
+export async function fetchOpenFoodFacts(barcode: string): Promise<OffResult | undefined> {
   const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json?fields=${OFF_FIELDS}`)
   if (r.status === 404) return undefined
   if (!r.ok) throw new Error(`HTTP ${r.status}`)
   const data = (await r.json()) as { status?: number; product?: OffProduct }
-  return data.status === 1 && data.product ? offToLabel(data.product, barcode) : undefined
+  if (data.status !== 1 || !data.product) return undefined
+  const label = offToLabel(data.product, barcode)
+  return label ? { complete: true, label } : { complete: false, label: offToPartial(data.product, barcode) }
 }
 
 export const normalize = (s: string) =>

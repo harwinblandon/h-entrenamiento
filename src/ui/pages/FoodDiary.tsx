@@ -806,15 +806,24 @@ export function FoodDiary({ profile, targets, meals }: { profile: Profile; targe
     try {
       const found = await fetchOpenFoodFacts(code)
       setPanel(
-        found
-          ? {
-              meal,
-              step: 'product',
-              initial: found,
-              origin: 'off',
-              note: 'Encontrado en Open Food Facts. Compáralo con la etiqueta antes de guardar: a veces los datos son de otra presentación o de otro país.',
-            }
-          : { meal, step: 'product', initial: { barcode: code }, note: 'Este código aún no está en ninguna base. Copia la tabla nutricional del empaque.' },
+        !found
+          ? { meal, step: 'product', initial: { barcode: code }, note: 'Este código aún no está en ninguna base. Copia la tabla nutricional del empaque.' }
+          : found.complete
+            ? {
+                meal,
+                step: 'product',
+                initial: found.label,
+                origin: 'off',
+                note: 'Encontrado en Open Food Facts. Compáralo con la etiqueta antes de guardar: a veces los datos son de otra presentación o de otro país.',
+              }
+            : {
+                meal,
+                step: 'product',
+                initial: found.label,
+                note:
+                  'El producto está en Open Food Facts, pero sin tabla nutricional. Copia los valores del empaque; ' +
+                  'si entraste con tu cuenta, queda en la lista común y nadie más del grupo tendrá que hacerlo.',
+              },
       )
     } catch {
       setPanel({ meal, step: 'product', initial: { barcode: code }, note: 'No se pudo consultar Open Food Facts (¿sin conexión?). Puedes copiar la etiqueta del empaque.' })
