@@ -109,6 +109,8 @@ export interface Profile {
   lifeStage: LifeStage
   lifeStageNotes: string
   safety: SafetyAnswers
+  /** Registro de comidas: con pesos exactos o con porciones de la mano y medidas caseras. */
+  foodMode?: 'precise' | 'hands'
   status: 'calibration' | 'active'
   /** Clave de acceso opcional (solo el hash, nunca el número). */
   pin?: PinLock
@@ -267,4 +269,59 @@ export interface BodyLog {
   activityMinutes?: number
   /** Pasos del día (del reloj o del celular). */
   steps?: number
+}
+
+/** Valores nutricionales: kcal, proteína, grasa, carbohidratos y fibra (g). */
+export interface Macros {
+  kcal: number
+  p: number
+  f: number
+  c: number
+  fib: number
+}
+
+export type MealSlot = 'breakfast' | 'midmorning' | 'lunch' | 'afternoon' | 'dinner'
+export type FoodState = 'raw' | 'cooked'
+
+/** Grasa usada al cocinar, ya dividida entre las porciones que se prepararon. */
+export interface AddedFat {
+  foodKey: string
+  name: string
+  /** Gramos que le corresponden a esta porción. */
+  grams: number
+  per100: Macros
+  /** Cómo se midió, p. ej. «1 cucharada para 5 porciones». */
+  note: string
+  input?: { measure: 'tsp' | 'tbsp' | 'g'; amount: number; portions: number }
+}
+
+export interface FoodLog {
+  id: string
+  profileId: string
+  date: string
+  meal: MealSlot
+  /** Alimento de la base, receta, «usda:<id>» o «custom:<id>». */
+  foodKey: string
+  name: string
+  state: FoodState
+  grams: number
+  /** Medida usada si no fue en gramos (medida casera o porción de mano). */
+  measure?: { label: string; count: number }
+  /** Valores por 100 g en el momento del registro (no cambian si se actualiza la base). */
+  per100: Macros
+  addedFat?: AddedFat
+  createdAt: string
+}
+
+/** Producto propio (p. ej. marca de tienda) tomado de la tabla nutricional del empaque. */
+export interface CustomFood {
+  id: string
+  profileId: string
+  name: string
+  brand?: string
+  per100: Macros
+  /** Porción del empaque, si se registró. */
+  portion?: { label: string; grams: number }
+  fatPrompt?: boolean
+  createdAt: string
 }

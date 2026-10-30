@@ -101,6 +101,7 @@ export interface Member {
   workouts: number
   lastWorkoutAt?: string
   bodyLogs: number
+  foodLogs: number
 }
 
 const MEMBER_THROTTLE_MS = 2 * 60_000
@@ -131,6 +132,7 @@ async function writeMember() {
         workouts: finished.length,
         lastWorkoutAt,
         bodyLogs: await db.bodyLogs.count(),
+        foodLogs: await db.foodLogs.count(),
       },
       { merge: true },
     )
@@ -172,6 +174,7 @@ export async function listMembers(): Promise<Member[]> {
         workouts: Number(m.workouts ?? 0),
         lastWorkoutAt: m.lastWorkoutAt ?? undefined,
         bodyLogs: Number(m.bodyLogs ?? 0),
+        foodLogs: Number(m.foodLogs ?? 0),
       }
     })
   } catch (e) {
@@ -349,7 +352,7 @@ export function initSync(config: FirebaseOptions) {
 async function onlyUntouchedDemo(): Promise<boolean> {
   const profiles = await db.profiles.toArray()
   if (profiles.length !== 1 || profiles[0].createdAt !== profiles[0].updatedAt) return false
-  return (await db.plans.count()) + (await db.workouts.count()) + (await db.bodyLogs.count()) === 0
+  return (await db.plans.count()) + (await db.workouts.count()) + (await db.bodyLogs.count()) + (await db.foodLogs.count()) === 0
 }
 
 const AUTH_ERRORS: Record<string, string> = {

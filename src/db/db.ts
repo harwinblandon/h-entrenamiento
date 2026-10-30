@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
-import type { BodyLog, Equipment, Plan, Profile, WorkoutLog } from '../domain/types'
+import type { BodyLog, CustomFood, Equipment, FoodLog, Plan, Profile, WorkoutLog } from '../domain/types'
 import { DIRTY, REMOTE, setDeleteTracking, setTombstoneHandler, SYNCED_TABLES, syncMiddleware, VERSION, type SyncedTable } from './syncMiddleware'
 
 /** Marca de borrado local pendiente de subir a la nube. */
@@ -15,6 +15,8 @@ export const db = new Dexie('atlas') as Dexie & {
   plans: EntityTable<Plan, 'id'>
   workouts: EntityTable<WorkoutLog, 'id'>
   bodyLogs: EntityTable<BodyLog, 'id'>
+  foodLogs: EntityTable<FoodLog, 'id'>
+  customFoods: EntityTable<CustomFood, 'id'>
   tombstones: EntityTable<Tombstone, 'key'>
 }
 
@@ -76,7 +78,8 @@ db.version(3)
     tombstones: 'key',
   })
   .upgrade(async (tx) => {
-    for (const t of SYNCED_TABLES) {
+    // Solo las tablas que existían en la v3 (las posteriores nacen ya con sus campos de sincronización).
+    for (const t of ['profiles', 'plans', 'workouts', 'bodyLogs']) {
       await tx
         .table(t)
         .toCollection()
@@ -103,11 +106,17 @@ db.version(4)
       }),
   )
 
+// v5: registro de comidas y productos propios.
+db.version(5).stores({
+  foodLogs: 'id, profileId, [profileId+date], _dirty',
+  customFoods: 'id, profileId, _dirty',
+})
+
 /** Borra todos los datos locales (al cerrar sesión: siguen en la nube). */
 export async function clearLocalData() {
   setDeleteTracking(false)
   try {
-    await db.transaction('rw', [db.profiles, db.plans, db.workouts, db.bodyLogs, db.tombstones], async () => {
+    await db.transaction('rw', [db.profiles, db.plans, db.workouts, db.bodyLogs, db.foodLogs, db.customFoods, db.tombstones], async () => {
       for (const t of SYNCED_TABLES) await db.table(t).clear()
       await db.tombstones.clear()
     })
@@ -117,8 +126,10 @@ export async function clearLocalData() {
 }
 
 export async function deleteProfile(id: string) {
-  await db.transaction('rw', [db.profiles, db.plans, db.workouts, db.bodyLogs], async () => {
+  await db.transaction('rw', [db.profiles, db.plans, db.workouts, db.bodyLogs, db.foodLogs, db.customFoods], async () => {
     await db.plans.where('profileId').equals(id).delete()
+    await db.foodLogs.where('profileId').equals(id).delete()
+    await db.customFoods.where('profileId').equals(id).delete()
     await db.workouts.where('profileId').equals(id).delete()
     await db.bodyLogs.where('profileId').equals(id).delete()
     await db.profiles.delete(id)
@@ -168,6 +179,8 @@ interface Backup {
   plans: Plan[]
   workouts: WorkoutLog[]
   bodyLogs: BodyLog[]
+  foodLogs?: FoodLog[]
+  customFoods?: CustomFood[]
 }
 
 export async function exportData(): Promise<Backup> {
@@ -179,6 +192,8 @@ export async function exportData(): Promise<Backup> {
     plans: await db.plans.toArray(),
     workouts: await db.workouts.toArray(),
     bodyLogs: await db.bodyLogs.toArray(),
+    foodLogs: await db.foodLogs.toArray(),
+    customFoods: await db.customFoods.toArray(),
   }
 }
 
@@ -186,12 +201,14 @@ export async function exportData(): Promise<Backup> {
 export async function importData(data: unknown): Promise<number> {
   const b = data as Partial<Backup>
   if (b?.app !== 'atlas' || !Array.isArray(b.profiles)) throw new Error('El archivo no es un respaldo válido de esta app.')
-  await db.transaction('rw', [db.profiles, db.plans, db.workouts, db.bodyLogs], async () => {
+  await db.transaction('rw', [db.profiles, db.plans, db.workouts, db.bodyLogs, db.foodLogs, db.customFoods], async () => {
     for (const p of b.profiles!) migrateProfile(p as unknown as Record<string, unknown>)
     await db.profiles.bulkPut(b.profiles!)
     await db.plans.bulkPut(b.plans ?? [])
     await db.workouts.bulkPut(b.workouts ?? [])
     await db.bodyLogs.bulkPut(b.bodyLogs ?? [])
+    await db.foodLogs.bulkPut(b.foodLogs ?? [])
+    await db.customFoods.bulkPut(b.customFoods ?? [])
   })
   return b.profiles.length
 }

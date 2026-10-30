@@ -1,7 +1,7 @@
 import type { DBCore, DBCoreMutateRequest, DBCoreMutateResponse, DBCoreTable, Middleware } from 'dexie'
 
 /** Tablas que se sincronizan con la nube. */
-export const SYNCED_TABLES = ['profiles', 'plans', 'workouts', 'bodyLogs'] as const
+export const SYNCED_TABLES = ['profiles', 'plans', 'workouts', 'bodyLogs', 'foodLogs', 'customFoods'] as const
 export type SyncedTable = (typeof SYNCED_TABLES)[number]
 
 /** Versión del registro (ms) y si tiene cambios sin subir. */

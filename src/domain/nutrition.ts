@@ -22,6 +22,8 @@ export interface NutritionResult {
   fatG: number
   fatPerKg: number
   carbsG: number
+  /** Comidas sugeridas al día para repartir la proteína. */
+  meals: number
   mealsNote: string
   explanations: Explanation[]
   warnings: string[]
@@ -169,6 +171,7 @@ export function computeNutrition(profile: Profile, currentWeightKg = profile.wei
     fatG,
     fatPerKg,
     carbsG,
+    meals,
     mealsNote: `${meals} comidas con ~${Math.round(proteinG / meals)} g de proteína cada una`,
     explanations,
     warnings,

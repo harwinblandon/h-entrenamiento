@@ -56,6 +56,14 @@ export function EvidencePage() {
           licencia. Cuando una ilustración muestra un ejercicio de patrón parecido y no exactamente el mismo, se indica como
           «patrón similar».
         </p>
+        <p style={{ fontSize: '0.9rem', margin: 0 }}>
+          Los valores nutricionales provienen de{' '}
+          <a href="https://fdc.nal.usda.gov/" target="_blank" rel="noreferrer">
+            USDA FoodData Central
+          </a>{' '}
+          (SR Legacy, dominio público), con nombres y cortes colombianos asignados por la app. Las preparaciones típicas (arepa,
+          sancocho, ajiaco…) y algunas frutas sin dato en el USDA son estimaciones aproximadas.
+        </p>
       </article>
     </div>
   )

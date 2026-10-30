@@ -97,6 +97,7 @@ export function AdminPage() {
                   <th>Última conexión</th>
                   <th className="r">Sesiones</th>
                   <th className="r hide-sm">Personas</th>
+                  <th className="r hide-sm">Comidas</th>
                   <th className="hide-sm">Último entrenamiento</th>
                 </tr>
               </thead>
@@ -111,6 +112,7 @@ export function AdminPage() {
                     <td>{relative(m.lastSeenAt)}</td>
                     <td className="r">{m.workouts}</td>
                     <td className="r hide-sm">{m.profiles}</td>
+                    <td className="r hide-sm">{m.foodLogs}</td>
                     <td className="hide-sm">{fmtDate(m.lastWorkoutAt)}</td>
                   </tr>
                 ))}

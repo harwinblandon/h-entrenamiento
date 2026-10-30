@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { db } from '../../db/db'
 import { GOAL_LABELS } from '../../domain/labels'
@@ -7,6 +8,16 @@ import { WEIGHINS_TO_CONFIRM, weightStatus, type WeightStatus } from '../../doma
 import type { Goal } from '../../domain/types'
 import { useActiveProfile } from '../activeProfile'
 import { Explanations } from '../components/Explanations'
+import { FoodDiary } from './FoodDiary'
+
+const TAB_KEY = 'nutrition.tab'
+function readTab(): 'log' | 'targets' {
+  try {
+    return localStorage.getItem(TAB_KEY) === 'targets' ? 'targets' : 'log'
+  } catch {
+    return 'log'
+  }
+}
 
 function weightSourceText(ws: WeightStatus): string {
   if (ws.source === 'average') return `Promedio de ${ws.recentCount} pesajes de esta semana`
@@ -16,6 +27,15 @@ function weightSourceText(ws: WeightStatus): string {
 
 export function NutritionPage() {
   const { active } = useActiveProfile()
+  const [tab, setTabState] = useState(readTab)
+  const setTab = (t: 'log' | 'targets') => {
+    setTabState(t)
+    try {
+      localStorage.setItem(TAB_KEY, t)
+    } catch {
+      // Sin almacenamiento: la pestaña no se recuerda.
+    }
+  }
   const bodyLogs = useLiveQuery(() => (active ? db.bodyLogs.where('profileId').equals(active.id).toArray() : []), [active?.id])
 
   if (!active) return <div className="card empty">Primero crea o selecciona una persona.</div>
@@ -29,8 +49,8 @@ export function NutritionPage() {
       <div className="stack">
         <h1>Nutrición</h1>
         <div className="alert warn">
-          El cálculo de calorías está oculto porque la ficha indica antecedentes de trastornos de la conducta alimentaria.
-          Te recomendamos definir la alimentación con profesionales en nutrición y salud mental. Puedes cambiarlo en la{' '}
+          El cálculo de calorías está oculto porque la ficha indica antecedentes de trastornos de la conducta alimentaria. Te recomendamos
+          definir la alimentación con profesionales en nutrición y salud mental. Puedes cambiarlo en la{' '}
           <Link to={`/personas/${active.id}`}>ficha</Link>.
         </div>
       </div>
@@ -47,7 +67,12 @@ export function NutritionPage() {
         <select
           aria-label="Objetivo"
           value={active.goal}
-          onChange={(e) => db.profiles.update(active.id, { goal: e.target.value as Goal, updatedAt: new Date().toISOString() })}
+          onChange={(e) =>
+            db.profiles.update(active.id, {
+              goal: e.target.value as Goal,
+              updatedAt: new Date().toISOString(),
+            })
+          }
           style={{ width: 'auto' }}
         >
           {Object.entries(GOAL_LABELS).map(([k, v]) => (
@@ -58,98 +83,138 @@ export function NutritionPage() {
         </select>
       </div>
 
-      {!ws.confirmed && (
+      <div className="chips" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'log'}
+          className={`chip${tab === 'log' ? ' on' : ''}`}
+          onClick={() => setTab('log')}
+        >
+          Registro de comidas
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'targets'}
+          className={`chip${tab === 'targets' ? ' on' : ''}`}
+          onClick={() => setTab('targets')}
+        >
+          Objetivos
+        </button>
+      </div>
+
+      {tab === 'log' && (
+        <FoodDiary
+          profile={active}
+          targets={{
+            kcal: n.targetKcal,
+            proteinG: n.proteinG,
+            fatG: n.fatG,
+            carbsG: n.carbsG,
+          }}
+          meals={n.meals}
+        />
+      )}
+
+      {tab === 'targets' && !ws.confirmed && (
         <div className="alert warn">
-          <strong>Peso sin confirmar.</strong> Los números usan {weight} kg ({weightSourceText(ws).toLowerCase()}). Pésate en ayunas
-          al menos {WEIGHINS_TO_CONFIRM} días esta semana desde el <Link to="/">Panel</Link> ({ws.recentCount}/{WEIGHINS_TO_CONFIRM}); el
+          <strong>Peso sin confirmar.</strong> Los números usan {weight} kg ({weightSourceText(ws).toLowerCase()}). Pésate en ayunas al
+          menos {WEIGHINS_TO_CONFIRM} días esta semana desde el <Link to="/">Panel</Link> ({ws.recentCount}/{WEIGHINS_TO_CONFIRM}); el
           cálculo pasará a usar tu promedio semanal.
         </div>
       )}
-      {n.warnings.map((w) => (
-        <div className="alert warn" key={w}>
-          {w}
-        </div>
-      ))}
-
-      <div className="cols-2">
-        <div className="stack">
-          <div className="card grid-tight">
-            <div className="stat">
-              <span className="label">Calorías objetivo</span>
-              <span className="value">{n.targetKcal.toLocaleString('es')} kcal</span>
-              <span className="sub">
-                {n.adjustmentPct === 0 ? 'Mantenimiento' : `${n.adjustmentPct > 0 ? '+' : ''}${Math.round(n.adjustmentPct * 100)} % sobre el gasto`}
-              </span>
-            </div>
-            <div className="stat">
-              <span className="label">Gasto estimado</span>
-              <span className="value">{n.tdee.toLocaleString('es')} kcal</span>
-              <span className="sub">
-                Rango probable {n.tdeeRange[0].toLocaleString('es')}–{n.tdeeRange[1].toLocaleString('es')}
-              </span>
-            </div>
-            <div className="stat">
-              <span className="label">Ritmo buscado</span>
-              <span className="value">
-                {rateKg[0]} a {rateKg[1]} kg
-              </span>
-              <span className="sub">
-                por semana ({n.weeklyRatePct[0]} a {n.weeklyRatePct[1]} % del peso)
-              </span>
-            </div>
-            <div className="stat">
-              <span className="label">Peso usado</span>
-              <span className="value">{weight} kg</span>
-              <span className="sub">
-                {weightSourceText(ws)} {ws.confirmed ? <span className="badge accent">Confirmado</span> : <span className="badge warn">Sin confirmar</span>}
-              </span>
-            </div>
+      {tab === 'targets' &&
+        n.warnings.map((w) => (
+          <div className="alert warn" key={w}>
+            {w}
           </div>
+        ))}
 
-          <div className="grid-tight">
-            <div className="card stat">
-              <span className="label">Proteína</span>
-              <span className="value">{n.proteinG} g</span>
-              <span className="sub">
-                {n.proteinPerKg} g/kg · {kcal(n.proteinG, 4)} % kcal
-              </span>
+      {tab === 'targets' && (
+        <div className="cols-2">
+          <div className="stack">
+            <div className="card grid-tight">
+              <div className="stat">
+                <span className="label">Calorías objetivo</span>
+                <span className="value">{n.targetKcal.toLocaleString('es')} kcal</span>
+                <span className="sub">
+                  {n.adjustmentPct === 0
+                    ? 'Mantenimiento'
+                    : `${n.adjustmentPct > 0 ? '+' : ''}${Math.round(n.adjustmentPct * 100)} % sobre el gasto`}
+                </span>
+              </div>
+              <div className="stat">
+                <span className="label">Gasto estimado</span>
+                <span className="value">{n.tdee.toLocaleString('es')} kcal</span>
+                <span className="sub">
+                  Rango probable {n.tdeeRange[0].toLocaleString('es')}–{n.tdeeRange[1].toLocaleString('es')}
+                </span>
+              </div>
+              <div className="stat">
+                <span className="label">Ritmo buscado</span>
+                <span className="value">
+                  {rateKg[0]} a {rateKg[1]} kg
+                </span>
+                <span className="sub">
+                  por semana ({n.weeklyRatePct[0]} a {n.weeklyRatePct[1]} % del peso)
+                </span>
+              </div>
+              <div className="stat">
+                <span className="label">Peso usado</span>
+                <span className="value">{weight} kg</span>
+                <span className="sub">
+                  {weightSourceText(ws)}{' '}
+                  {ws.confirmed ? <span className="badge accent">Confirmado</span> : <span className="badge warn">Sin confirmar</span>}
+                </span>
+              </div>
             </div>
-            <div className="card stat">
-              <span className="label">Grasas</span>
-              <span className="value">{n.fatG} g</span>
-              <span className="sub">
-                {n.fatPerKg} g/kg · {kcal(n.fatG, 9)} % kcal
-              </span>
+
+            <div className="grid-tight">
+              <div className="card stat">
+                <span className="label">Proteína</span>
+                <span className="value">{n.proteinG} g</span>
+                <span className="sub">
+                  {n.proteinPerKg} g/kg · {kcal(n.proteinG, 4)} % kcal
+                </span>
+              </div>
+              <div className="card stat">
+                <span className="label">Grasas</span>
+                <span className="value">{n.fatG} g</span>
+                <span className="sub">
+                  {n.fatPerKg} g/kg · {kcal(n.fatG, 9)} % kcal
+                </span>
+              </div>
+              <div className="card stat">
+                <span className="label">Carbohidratos</span>
+                <span className="value">{n.carbsG} g</span>
+                <span className="sub">
+                  {Math.round((n.carbsG / weight) * 10) / 10} g/kg · {kcal(n.carbsG, 4)} % kcal
+                </span>
+              </div>
             </div>
-            <div className="card stat">
-              <span className="label">Carbohidratos</span>
-              <span className="value">{n.carbsG} g</span>
-              <span className="sub">
-                {Math.round((n.carbsG / weight) * 10) / 10} g/kg · {kcal(n.carbsG, 4)} % kcal
-              </span>
+
+            <div className="card stack-sm">
+              <h2>Cómo aplicarlo</h2>
+              <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
+                <li>{n.mealsNote}.</li>
+                <li>Pésate en ayunas cada mañana y fíjate en el promedio semanal, nunca en un dato aislado.</li>
+                <li>Pesa los alimentos siempre del mismo modo (crudos o cocidos) para que los registros sean consistentes.</li>
+                <li>Mantén las calorías al menos 2 semanas antes de juzgar si funcionan.</li>
+              </ul>
             </div>
+            <p className="muted" style={{ fontSize: '0.85rem' }}>
+              Punto de partida estimado, no una prescripción exacta. En esta fase tú te encargas de cumplirlo; la app ajustará las calorías
+              en una fase posterior según la evolución real del peso y la cintura.
+            </p>
           </div>
 
           <div className="card stack-sm">
-            <h2>Cómo aplicarlo</h2>
-            <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
-              <li>{n.mealsNote}.</li>
-              <li>Pésate en ayunas cada mañana y fíjate en el promedio semanal, nunca en un dato aislado.</li>
-              <li>Pesa los alimentos siempre del mismo modo (crudos o cocidos) para que los registros sean consistentes.</li>
-              <li>Mantén las calorías al menos 2 semanas antes de juzgar si funcionan.</li>
-            </ul>
+            <h2>De dónde salen estos números</h2>
+            <Explanations items={n.explanations} />
           </div>
-          <p className="muted" style={{ fontSize: '0.85rem' }}>
-            Punto de partida estimado, no una prescripción exacta. En esta fase tú te encargas de cumplirlo; la app ajustará las
-            calorías en una fase posterior según la evolución real del peso y la cintura.
-          </p>
         </div>
-
-        <div className="card stack-sm">
-          <h2>De dónde salen estos números</h2>
-          <Explanations items={n.explanations} />
-        </div>
-      </div>
+      )}
     </div>
   )
 }
